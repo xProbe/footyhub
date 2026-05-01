@@ -112,12 +112,22 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
                         return GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTapDown: (d) => _tap(d, cts.biggest),
-                          child: CustomPaint(
-                            painter: _PitchPainter(
-                              ballX: _x,
-                              ballY: _y,
-                            ),
-                            size: Size.infinite,
+                          child: Stack(
+                            children: [
+                              CustomPaint(
+                                painter: _PitchPainter(),
+                                size: Size.infinite,
+                              ),
+                              Positioned(
+                                left: (_x * cts.maxWidth) - 25,
+                                top: (_y * cts.maxHeight) - 25,
+                                child: Image.asset(
+                                  'assets/images/logobola.png',
+                                  width: 50,
+                                  height: 50,
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -175,14 +185,6 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
 }
 
 class _PitchPainter extends CustomPainter {
-  final double ballX;
-  final double ballY;
-
-  _PitchPainter({
-    required this.ballX,
-    required this.ballY,
-  });
-
   @override
   void paint(Canvas canvas, Size s) {
     final h = s.height;
@@ -194,37 +196,10 @@ class _PitchPainter extends CustomPainter {
       ..color = Colors.white
       ..strokeWidth = 3;
     canvas.drawLine(Offset(0, h * 0.92), Offset(w, h * 0.92), line);
-
-    final ball = Offset(ballX * w, ballY * h);
-    canvas.drawCircle(
-      ball,
-      22,
-      Paint()..color = Colors.white,
-    );
-    canvas.drawCircle(
-      ball,
-      22,
-      Paint()
-        ..color = Colors.black87
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-    final patch = Path()
-      ..moveTo(ball.dx - 8, ball.dy)
-      ..lineTo(ball.dx + 8, ball.dy)
-      ..moveTo(ball.dx, ball.dy - 8)
-      ..lineTo(ball.dx, ball.dy + 8);
-    canvas.drawPath(
-      patch,
-      Paint()
-        ..color = Colors.black87
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
   }
 
   @override
   bool shouldRepaint(covariant _PitchPainter oldDelegate) {
-    return oldDelegate.ballX != ballX || oldDelegate.ballY != ballY;
+    return false;
   }
 }

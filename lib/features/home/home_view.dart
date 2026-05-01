@@ -45,8 +45,14 @@ class HomeView extends StatelessWidget {
                   ),
                 ),
                 IconButton.filledTonal(
+                  onPressed: () => Get.toNamed(Routes.CONVERSION),
+                  icon: const Icon(Icons.calculate),
+                  tooltip: 'Konversi Manual',
+                ),
+                const SizedBox(width: 8),
+                IconButton.filledTonal(
                   onPressed: () => Get.toNamed(Routes.GAME),
-                  icon: const Icon(Icons.sports_soccer),
+                  icon: Image.asset('assets/images/logobola.png', width: 24, height: 24),
                   tooltip: 'Mini game',
                 ),
               ],
@@ -95,7 +101,7 @@ class HomeView extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       margin: const EdgeInsets.only(bottom: 12),
                       child: InkWell(
-                        onTap: () {},
+                        onTap: () => Get.toNamed(Routes.MATCH_DETAIL, arguments: item),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

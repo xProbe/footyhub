@@ -5,13 +5,13 @@ import '../../core/constants/api_constants.dart';
 /// Kurs dari base mata uang (mis. IDR) ke USD, EUR, GBP via ExchangeRate-API v4.
 class ExchangeRateService {
   static Future<Map<String, double>?> ratesFromUsdBase() async {
-    final uri = Uri.parse('${ApiConstants.exchangeRateBaseUrl}/USD');
+    final uri = Uri.parse('${ApiConstants.exchangeRateBaseUrl}/${ApiConstants.exchangeRateApiKey}/latest/USD');
     try {
       final res =
           await http.get(uri).timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) return null;
       final data = jsonDecode(res.body) as Map<String, dynamic>;
-      final rates = data['rates'] as Map<String, dynamic>?;
+      final rates = data['conversion_rates'] as Map<String, dynamic>?; // v6 uses conversion_rates
       if (rates == null) return null;
       return rates.map((k, v) => MapEntry(k, (v as num).toDouble()));
     } catch (_) {

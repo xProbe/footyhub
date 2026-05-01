@@ -6,4 +6,6 @@ abstract class Routes {
   static const GAME = '/game';
   static const MAPS = '/maps';
   static const FIELD_DETAIL = '/field-detail';
+  static const MATCH_DETAIL = '/match-detail';
+  static const CONVERSION = '/conversion';
 }

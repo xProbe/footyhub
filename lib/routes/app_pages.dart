@@ -12,6 +12,8 @@ import '../features/game/game_view.dart';
 import '../features/maps/maps_view.dart';
 import '../features/splash/splash_view.dart';
 import '../features/fields/field_detail_view.dart';
+import '../features/home/match_detail_view.dart';
+import '../features/home/conversion_view.dart';
 
 import '../features/game/game_controller.dart';
 import '../features/maps/maps_controller.dart';
@@ -58,6 +60,14 @@ class AppPages {
       binding: BindingsBuilder(() {
         Get.put(FieldDetailController());
       }),
+    ),
+    GetPage(
+      name: Routes.MATCH_DETAIL,
+      page: () => MatchDetailView(item: Get.arguments),
+    ),
+    GetPage(
+      name: Routes.CONVERSION,
+      page: () => const ConversionView(),
     ),
   ];
 }

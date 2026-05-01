@@ -20,7 +20,7 @@ class NewsDatabase {
     final path = p.join(dir, 'footyhub_news.db');
     return openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
 CREATE TABLE news_cache (
@@ -30,9 +30,27 @@ CREATE TABLE news_cache (
   imageUrl TEXT NOT NULL,
   statusShort TEXT NOT NULL,
   utcDate TEXT,
+  leagueName TEXT,
+  stadium TEXT,
+  referee TEXT,
+  homeName TEXT,
+  awayName TEXT,
+  homeLogo TEXT,
+  awayLogo TEXT,
   updatedAt INTEGER NOT NULL
 )
 ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE news_cache ADD COLUMN leagueName TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN stadium TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN referee TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN homeName TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN awayName TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN homeLogo TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE news_cache ADD COLUMN awayLogo TEXT DEFAULT ""');
+        }
       },
     );
   }
@@ -51,6 +69,13 @@ CREATE TABLE news_cache (
           'imageUrl': it.imageUrl,
           'statusShort': it.statusShort,
           'utcDate': it.utcDate,
+          'leagueName': it.leagueName,
+          'stadium': it.stadium,
+          'referee': it.referee,
+          'homeName': it.homeName,
+          'awayName': it.awayName,
+          'homeLogo': it.homeLogo,
+          'awayLogo': it.awayLogo,
           'updatedAt': now,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
@@ -75,6 +100,13 @@ CREATE TABLE news_cache (
             imageUrl: r['imageUrl'] as String? ?? '',
             statusShort: r['statusShort'] as String? ?? '',
             utcDate: r['utcDate'] as String?,
+            leagueName: r['leagueName'] as String? ?? '',
+            stadium: r['stadium'] as String? ?? '',
+            referee: r['referee'] as String? ?? '',
+            homeName: r['homeName'] as String? ?? '',
+            awayName: r['awayName'] as String? ?? '',
+            homeLogo: r['homeLogo'] as String? ?? '',
+            awayLogo: r['awayLogo'] as String? ?? '',
           ),
         )
         .toList();
