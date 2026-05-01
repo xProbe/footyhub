@@ -18,7 +18,7 @@ class AiAssistantController extends GetxController {
 
     // 2. Panggil Gemini AI
     String prompt =
-        "Anda adalah asisten ahli akuarium AquaSmart. Jawablah pertanyaan berikut dengan singkat, ramah, dan informatif: $text";
+        "Anda adalah asisten ahli akuarium footyhub. Jawablah pertanyaan berikut dengan singkat, ramah, dan informatif: $text";
 
     var response = await ApiProvider.askGemini(prompt);
 

@@ -107,6 +107,73 @@ class MapsController extends GetxController {
   }
 
   void fetchNearbyPlaces(double lat, double lng) async {
+    if (ApiConstants.googleMapsKey == 'MASUKKAN_GOOGLE_MAPS_KEY_ANDA') {
+      await Future.delayed(const Duration(seconds: 1));
+      Get.snackbar(
+        "Mode Offline",
+        "Menampilkan data dummy karena Google Maps API Key belum dikonfigurasi.",
+        backgroundColor: Colors.blue,
+        colorText: Colors.white,
+      );
+
+      final dummyPlaces = [
+        {
+          'name': 'Futsal Arena (Dummy)',
+          'vicinity': 'Jl. Dummy Futsal No. 1',
+          'geometry': {
+            'location': {'lat': lat + 0.01, 'lng': lng + 0.01}
+          },
+          'place_id': 'dummy_1'
+        },
+        {
+          'name': 'Bintang Futsal (Dummy)',
+          'vicinity': 'Jl. Bintang No. 99',
+          'geometry': {
+            'location': {'lat': lat - 0.01, 'lng': lng - 0.01}
+          },
+          'place_id': 'dummy_2'
+        }
+      ];
+
+      final Set<Marker> newMarkers = {};
+      for (var place in dummyPlaces) {
+        final geometry = place['geometry'] as Map<String, dynamic>;
+        final location = geometry['location'] as Map<String, dynamic>;
+        final latToko = location['lat'] as double;
+        final lngToko = location['lng'] as double;
+        place['distance'] = calculateDistance(latToko, lngToko);
+        final pid = place['place_id'] as String;
+
+        newMarkers.add(
+          Marker(
+            markerId: MarkerId(pid),
+            position: LatLng(latToko, lngToko),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+            infoWindow: InfoWindow(
+              title: place['name'] as String,
+              snippet: "${place['distance']} km",
+            ),
+            onTap: () {
+              Get.toNamed(
+                Routes.FIELD_DETAIL,
+                arguments: {
+                  'name': place['name'],
+                  'vicinity': place['vicinity'],
+                  'lat': latToko,
+                  'lng': lngToko,
+                  'priceIdr': 150000,
+                },
+              );
+            },
+          ),
+        );
+      }
+      placeList.value = dummyPlaces;
+      markers.assignAll(newMarkers);
+      isLoading.value = false;
+      return;
+    }
+
     final String url =
         "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=8000&keyword=futsal&type=gym&key=${ApiConstants.googleMapsKey}";
 

@@ -10,6 +10,28 @@ class FootballApiService {
       };
 
   static Future<List<FootballFeedItem>> fetchFeed() async {
+    if (ApiConstants.footballApiKey == 'MASUKKAN_API_KEY_API_FOOTBALL_ANDA') {
+      await Future.delayed(const Duration(seconds: 1));
+      return [
+        FootballFeedItem(
+          id: 'mock1',
+          title: 'Arsenal vs Chelsea',
+          subtitle: '3 — 1 · FT',
+          imageUrl: 'https://media.api-sports.io/football/teams/42.png',
+          statusShort: 'FT',
+          utcDate: DateTime.now().toString(),
+        ),
+        FootballFeedItem(
+          id: 'mock2',
+          title: 'Real Madrid vs Barcelona',
+          subtitle: 'vs · NS',
+          imageUrl: 'https://media.api-sports.io/football/teams/541.png',
+          statusShort: 'NS',
+          utcDate: DateTime.now().add(const Duration(hours: 2)).toString(),
+        ),
+      ];
+    }
+
     final items = <FootballFeedItem>[];
 
     try {

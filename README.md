@@ -1,4 +1,4 @@
-# aquasmart
+# footyhub
 
 A new Flutter project.
 
