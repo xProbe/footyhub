@@ -8,10 +8,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/api_constants.dart';
 import '../../routes/app_routes.dart';
 
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+
 class MapsController extends GetxController {
   var currentLatLng = const LatLng(-6.2000, 106.8166).obs;
   var markers = <Marker>{}.obs;
   var circles = <Circle>{}.obs;
+  var polylines = <Polyline>{}.obs;
   var placeList = <dynamic>[].obs;
   var isLoading = false.obs;
 
@@ -34,14 +37,51 @@ class MapsController extends GetxController {
   }
 
   void openDirections(double lat, double lng) async {
-    final String googleMapsUrl =
-        "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving";
-    final Uri uri = Uri.parse(googleMapsUrl);
+    isLoading.value = true;
+    try {
+      PolylinePoints polylinePoints = PolylinePoints(apiKey: ApiConstants.googleMapsKey);
+      PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+        request: PolylineRequest(
+          origin: PointLatLng(currentLatLng.value.latitude, currentLatLng.value.longitude),
+          destination: PointLatLng(lat, lng),
+          mode: TravelMode.driving,
+        ),
+      );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      Get.snackbar("Error", "Tidak dapat membuka aplikasi navigasi");
+      if (result.points.isNotEmpty) {
+        List<LatLng> polylineCoordinates = [];
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+
+        polylines.assign(
+          Polyline(
+            polylineId: const PolylineId("route"),
+            color: Colors.blue,
+            points: polylineCoordinates,
+            width: 5,
+          ),
+        );
+
+        // Adjust bounds
+        double minLat = currentLatLng.value.latitude < lat ? currentLatLng.value.latitude : lat;
+        double maxLat = currentLatLng.value.latitude > lat ? currentLatLng.value.latitude : lat;
+        double minLng = currentLatLng.value.longitude < lng ? currentLatLng.value.longitude : lng;
+        double maxLng = currentLatLng.value.longitude > lng ? currentLatLng.value.longitude : lng;
+
+        LatLngBounds bounds = LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        );
+
+        mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 50));
+      } else {
+        Get.snackbar("Info", "Rute tidak ditemukan. Mungkin Anda berada dalam mode offline.");
+      }
+    } catch (e) {
+      Get.snackbar("Error", "Gagal menggambar rute: $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 
@@ -106,7 +146,15 @@ class MapsController extends GetxController {
     }
   }
 
-  void fetchNearbyPlaces(double lat, double lng) async {
+  void searchPlaces(String query) {
+    if (query.trim().isEmpty) {
+      fetchNearbyPlaces(currentLatLng.value.latitude, currentLatLng.value.longitude, keyword: "futsal");
+    } else {
+      fetchNearbyPlaces(currentLatLng.value.latitude, currentLatLng.value.longitude, keyword: query.trim());
+    }
+  }
+
+  void fetchNearbyPlaces(double lat, double lng, {String keyword = "futsal"}) async {
     if (ApiConstants.googleMapsKey == 'MASUKKAN_GOOGLE_MAPS_KEY_ANDA') {
       await Future.delayed(const Duration(seconds: 1));
       Get.snackbar(
@@ -175,7 +223,7 @@ class MapsController extends GetxController {
     }
 
     final String url =
-        "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=8000&keyword=futsal&type=gym&key=${ApiConstants.googleMapsKey}";
+        "https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=$lat,$lng&radius=8000&keyword=$keyword&type=gym&key=${ApiConstants.googleMapsKey}";
 
     try {
       var response = await http.get(Uri.parse(url));

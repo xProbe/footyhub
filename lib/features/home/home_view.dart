@@ -44,15 +44,17 @@ class HomeView extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton.filledTonal(
-                  onPressed: () => Get.toNamed(Routes.CONVERSION),
-                  icon: const Icon(Icons.calculate),
-                  tooltip: 'Konversi Manual',
-                ),
-                const SizedBox(width: 8),
+
                 IconButton.filledTonal(
                   onPressed: () => Get.toNamed(Routes.GAME),
-                  icon: Image.asset('assets/images/logobola.png', width: 24, height: 24),
+                  icon: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logobola.png',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
                   tooltip: 'Mini game',
                 ),
               ],

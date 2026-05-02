@@ -5,7 +5,8 @@ import '../../core/theme/app_colors.dart';
 import '../../data/services/exchange_rate_service.dart';
 
 class ConversionView extends StatefulWidget {
-  const ConversionView({super.key});
+  final bool isFromDashboard;
+  const ConversionView({super.key, this.isFromDashboard = false});
 
   @override
   State<ConversionView> createState() => _ConversionViewState();
@@ -108,6 +109,7 @@ class _ConversionViewState extends State<ConversionView> {
       child: Scaffold(
         backgroundColor: AppColors.tfBackground,
         appBar: AppBar(
+          automaticallyImplyLeading: !widget.isFromDashboard,
           title: Text('Konversi Manual', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,

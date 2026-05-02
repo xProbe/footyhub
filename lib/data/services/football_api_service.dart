@@ -20,6 +20,7 @@ class FootballApiService {
           imageUrl: 'https://media.api-sports.io/football/teams/42.png',
           statusShort: 'FT',
           utcDate: DateTime.now().toString(),
+          leagueName: 'Premier League',
         ),
         FootballFeedItem(
           id: 'mock2',
@@ -28,6 +29,7 @@ class FootballApiService {
           imageUrl: 'https://media.api-sports.io/football/teams/541.png',
           statusShort: 'NS',
           utcDate: DateTime.now().add(const Duration(hours: 2)).toString(),
+          leagueName: 'La Liga',
         ),
       ];
     }

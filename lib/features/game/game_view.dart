@@ -31,11 +31,11 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
     final gc = Get.find<GameController>();
     if (gc.isGameOver.value) return;
     setState(() {
-      _vy += 0.0012;
+      _vy += 0.0005; // Slower gravity
       _y += _vy;
       if (_y > 0.9) {
         _y = 0.1;
-        _vy = 0.002;
+        _vy = 0.001;
         _x = 0.3 + (DateTime.now().millisecond % 100) / 250;
         gc.decreaseHeart();
       }
@@ -49,8 +49,8 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
     final cy = _y * size.height;
     if ((d.localPosition - Offset(cx, cy)).distance < 56) {
       setState(() {
-        _vy = -0.018;
-        _y = (_y - 0.08).clamp(0.08, 0.5);
+        _vy = -0.012; // Slower jump
+        _y = (_y - 0.06).clamp(0.08, 0.5);
         gc.increaseScore();
       });
     }
@@ -121,10 +121,13 @@ class _GameViewState extends State<GameView> with SingleTickerProviderStateMixin
                               Positioned(
                                 left: (_x * cts.maxWidth) - 25,
                                 top: (_y * cts.maxHeight) - 25,
-                                child: Image.asset(
-                                  'assets/images/logobola.png',
-                                  width: 50,
-                                  height: 50,
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/images/logobola.png',
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ],

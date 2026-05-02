@@ -23,6 +23,7 @@ class MapsView extends StatelessWidget {
               ),
               markers: controller.markers.toSet(),
               circles: controller.circles.toSet(),
+              polylines: controller.polylines.toSet(),
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
@@ -51,8 +52,30 @@ class MapsView extends StatelessWidget {
               ),
             ),
           Positioned(
+            top: MediaQuery.paddingOf(context).top + (showBack ? 60 : 16),
+            left: 16,
             right: 16,
-            bottom: showBack ? 280 : 200,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Cari lapangan futsal...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                ),
+                onSubmitted: (value) => controller.searchPlaces(value),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: showBack ? 280 : 280,
             child: FloatingActionButton(
               heroTag: 'map_recenter',
               onPressed: controller.recenterOnUser,

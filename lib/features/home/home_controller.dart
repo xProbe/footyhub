@@ -41,7 +41,7 @@ class HomeController extends GetxController {
     final q = searchQuery.value.trim().toLowerCase();
     if (q.isEmpty) return newsList;
     return newsList
-        .where((e) => e.title.toLowerCase().contains(q))
+        .where((e) => e.title.toLowerCase().contains(q) || e.leagueName.toLowerCase().contains(q))
         .toList();
   }
 
