@@ -108,7 +108,7 @@ class ToolsView extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Convert prices when buying aquarium equipment from international suppliers',
+                        'Convert prices when buying equipment from international suppliers',
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.tfPlaceholder,
@@ -362,7 +362,7 @@ class ToolsView extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Coordinate with fish breeders and suppliers across different time zones',
+                      'Coordinate with international fans and leagues across different time zones',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.tfPlaceholder,

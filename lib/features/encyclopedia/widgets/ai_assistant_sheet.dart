@@ -41,7 +41,7 @@ class AiAssistantSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'AI Species Assistant',
+                          'AI Pundit Assistant',
                           style: GoogleFonts.inter(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -49,7 +49,7 @@ class AiAssistantSheet extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Ask about fish care, compatibility & more',
+                          'Ask about football matches, clubs & more',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: AppColors.tfPlaceholder,
@@ -179,7 +179,7 @@ class AiAssistantSheet extends StatelessWidget {
                           color: AppColors.textDark,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Ask about fish species...',
+                          hintText: 'Ask about football matches...',
                           hintStyle: GoogleFonts.inter(
                             fontSize: 13,
                             color: AppColors.tfPlaceholder,
@@ -238,7 +238,7 @@ class AiAssistantSheet extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Ask me anything about fish',
+          'Ask me anything about football',
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -247,7 +247,7 @@ class AiAssistantSheet extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Get expert advice on species care, tank\ncompatibility, or water parameters',
+          'Get expert analysis on team stats, match\nhistory, or football trivia',
           style: GoogleFonts.inter(
             fontSize: 13,
             color: AppColors.tfPlaceholder,

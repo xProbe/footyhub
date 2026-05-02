@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "aquasmart",
+            "name": "footyhub",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "aquasmart (profile mode)",
+            "name": "footyhub (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "aquasmart (release mode)",
+            "name": "footyhub (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
