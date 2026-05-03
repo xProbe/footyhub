@@ -42,15 +42,7 @@ class AuthController extends GetxController {
         name: name.trim(),
         nim: nim.trim(),
       );
-      if (res != null && res['token'] != null) {
-        final token = res['token'] as String;
-        final user = res['user'] as Map<String, dynamic>? ?? {};
-        await StorageUtil.saveJwtSession(
-          token: token,
-          username: user['username']?.toString() ?? username.trim(),
-          name: user['name']?.toString() ?? name,
-          nim: user['nim']?.toString() ?? nim,
-        );
+      if (res != null && res['error'] == null && res['token'] != null) {
         errorMessage.value = '';
         return true;
       }

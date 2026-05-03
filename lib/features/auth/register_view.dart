@@ -104,13 +104,20 @@ class RegisterView extends StatelessWidget {
                               passwordController.text,
                             );
                             if (success) {
-                              Get.offAllNamed(Routes.DASHBOARD);
+                              Get.back();
                               Get.snackbar(
                                 'Berhasil',
-                                'Akun dibuat dan sesi JWT aktif.',
+                                'Akun berhasil dibuat. Silakan login.',
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
                               );
                             } else {
-                              Get.snackbar('Gagal', authC.errorMessage.value);
+                              Get.snackbar(
+                                'Gagal',
+                                authC.errorMessage.value,
+                                backgroundColor: Colors.redAccent,
+                                colorText: Colors.white,
+                              );
                             }
                           },
                     style: ElevatedButton.styleFrom(
