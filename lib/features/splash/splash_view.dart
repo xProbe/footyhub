@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/storage_util.dart';
-import '../../routes/app_routes.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -20,45 +18,68 @@ class _SplashViewState extends State<SplashView> {
   }
 
   Future<void> _goNext() async {
-    await Future<void>.delayed(const Duration(milliseconds: 900));
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
     final ok = await StorageUtil.hasValidSession();
     if (!mounted) return;
     if (ok) {
-      Get.offAllNamed(Routes.DASHBOARD);
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       await StorageUtil.clearSession();
-      Get.offAllNamed(Routes.AUTH);
+      Navigator.pushReplacementNamed(context, '/auth');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: const Color(0xFF000000), // Pitch Black
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.sports_soccer, size: 88, color: Colors.white),
-            const SizedBox(height: 20),
-            Text(
-              'FootyHub',
-              style: GoogleFonts.inter(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF39FF14).withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: const Icon(
+                Icons.sports_soccer,
+                size: 80,
+                color: Color(0xFF39FF14), // Neon Green
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
             Text(
-              'Berita · Live score · Lapangan',
+              'FootyHub',
+              style: GoogleFonts.orbitron(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 2.0,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Portal Bola · Live Score · Sewa Lapangan',
               style: GoogleFonts.inter(
                 fontSize: 14,
                 color: Colors.white70,
               ),
             ),
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(color: Colors.white),
+            const SizedBox(height: 60),
+            const SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(
+                color: Color(0xFF39FF14),
+                strokeWidth: 3,
+              ),
+            ),
           ],
         ),
       ),

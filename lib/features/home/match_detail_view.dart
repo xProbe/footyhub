@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import '../../core/theme/widgets/glass_widgets.dart';
+import '../../core/constants/api_constants.dart';
 import '../../data/models/football_feed_item.dart';
 import '../../data/services/exchange_rate_service.dart';
 
-class MatchDetailView extends StatefulWidget {
+class MatchDetailView extends ConsumerStatefulWidget {
   final FootballFeedItem item;
 
   const MatchDetailView({super.key, required this.item});
 
   @override
-  State<MatchDetailView> createState() => _MatchDetailViewState();
+  ConsumerState<MatchDetailView> createState() => _MatchDetailViewState();
 }
 
-class _MatchDetailViewState extends State<MatchDetailView> {
+class _MatchDetailViewState extends ConsumerState<MatchDetailView> {
   Map<String, double>? _usdRates;
   bool _isLoadingRates = true;
 
-  // Base random price for ticket estimation
+  // AI Brief
+  String _aiTacticalBrief = '';
+  bool _isLoadingAi = false;
+
   final double _baseTicketIdr = 1500000;
 
   @override
   void initState() {
     super.initState();
     _loadRates();
+    _fetchAiBrief();
   }
 
   Future<void> _loadRates() async {
@@ -38,161 +44,102 @@ class _MatchDetailViewState extends State<MatchDetailView> {
     }
   }
 
+  Future<void> _fetchAiBrief() async {
+    if (ApiConstants.geminiKey == 'MASUKKAN_GEMINI_API_KEY_ANDA') {
+      setState(() {
+        _aiTacticalBrief = 'Asisten AI belum dikonfigurasi (Kunci API kosong). Silakan masukkan API Key di constants.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingAi = true;
+      _aiTacticalBrief = '';
+    });
+
+    try {
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: ApiConstants.geminiKey,
+      );
+
+      final prompt = '''
+Anda adalah pundit taktik sepakbola FootyHub. Rangkum analisis singkat taktik (3-5 poin) untuk pertandingan berikut:
+Laga: ${widget.item.title}
+Skor/Status: ${widget.item.subtitle}
+Liga: ${widget.item.leagueName}
+Stadion: ${widget.item.stadium}
+Wasit: ${widget.item.referee}
+
+Berikan output ramah, analitis, sporty, dan ringkas dalam Bahasa Indonesia menggunakan format poin-poin.
+''';
+
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+      
+      if (mounted) {
+        setState(() {
+          _aiTacticalBrief = response.text ?? 'Gagal membuat rangkuman taktis.';
+          _isLoadingAi = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _aiTacticalBrief = 'Gagal memanggil Gemini AI: $e';
+          _isLoadingAi = false;
+        });
+      }
+    }
+  }
+
   String _formatCurrency(double amount, String symbol) {
     final format = NumberFormat.currency(locale: 'en_US', symbol: symbol, decimalDigits: 0);
     return format.format(amount);
   }
 
-  Widget _buildCurrencyCard() {
-    if (_isLoadingRates) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-    }
-    if (_usdRates == null) {
-      return Text('Gagal memuat kurs mata uang.', style: GoogleFonts.inter(color: Colors.red));
-    }
-
-    final idr = _baseTicketIdr;
-    final usd = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'USD', usdRates: _usdRates!) ?? 0;
-    final eur = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'EUR', usdRates: _usdRates!) ?? 0;
-    final gbp = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'GBP', usdRates: _usdRates!) ?? 0;
-
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.primary.withOpacity(0.1)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.confirmation_num, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Estimasi Harga Tiket',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _currencyRow('Rp', _formatCurrency(idr, 'Rp ')),
-            _currencyRow('\$', _formatCurrency(usd, '\$ ')),
-            _currencyRow('€', _formatCurrency(eur, '€ ')),
-            _currencyRow('£', _formatCurrency(gbp, '£ ')),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _currencyRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.grey[700])),
-          Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeCard() {
-    if (widget.item.utcDate == null) {
-      return const SizedBox.shrink();
-    }
-
-    final utcTime = DateTime.parse(widget.item.utcDate!);
-    final wibTime = utcTime.add(const Duration(hours: 7));
-    final witaTime = utcTime.add(const Duration(hours: 8));
-    final witTime = utcTime.add(const Duration(hours: 9));
-    final londonTime = utcTime.add(const Duration(hours: 1)); // Assuming BST for simplicity, or we can just say +0/1
-
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
-
-    return Card(
-      color: Colors.white,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: AppColors.primary.withOpacity(0.1)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.access_time, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Konversi Waktu Kick-off',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _timeRow('WIB (Jakarta)', dateFormat.format(wibTime)),
-            _timeRow('WITA (Bali/Makassar)', dateFormat.format(witaTime)),
-            _timeRow('WIT (Papua/Maluku)', dateFormat.format(witTime)),
-            _timeRow('London (UK)', dateFormat.format(londonTime)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _timeRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: Colors.grey[700])),
-          Text(value, style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final item = widget.item;
 
     return Scaffold(
-      backgroundColor: AppColors.tfBackground,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Detail Pertandingan', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-        backgroundColor: AppColors.primary,
+        title: Text('Detail Pertandingan', style: GoogleFonts.orbitron(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF0A0A0C),
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // League Info
+            // League Badge
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.primary.withOpacity(0.3)),
                 ),
                 child: Text(
                   item.leagueName,
-                  style: GoogleFonts.inter(color: AppColors.primary, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.orbitron(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Score Board
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -201,22 +148,31 @@ class _MatchDetailViewState extends State<MatchDetailView> {
                 Column(
                   children: [
                     Text(
-                      item.subtitle.split(' · ').first, // The score part
-                      style: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      item.subtitle.split(' · ').first,
+                      style: GoogleFonts.orbitron(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                        letterSpacing: 1.0,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: item.statusShort == 'LIVE' ? Colors.red : Colors.grey[300],
+                        color: item.statusShort == 'LIVE' || item.statusShort == '1H' || item.statusShort == '2H'
+                            ? Colors.redAccent.withOpacity(0.12)
+                            : Colors.white.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         item.statusShort,
-                        style: GoogleFonts.inter(
-                          color: item.statusShort == 'LIVE' ? Colors.white : Colors.black87,
+                        style: GoogleFonts.orbitron(
+                          color: item.statusShort == 'LIVE' || item.statusShort == '1H' || item.statusShort == '2H'
+                              ? Colors.redAccent
+                              : Colors.white70,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ),
@@ -227,15 +183,80 @@ class _MatchDetailViewState extends State<MatchDetailView> {
             ),
             const SizedBox(height: 32),
 
-            // Additional Details
-            Text('Informasi Laga', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18)),
+            // Info rows
+            Text(
+              'INFORMASI LAGA',
+              style: GoogleFonts.orbitron(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+                letterSpacing: 1.0,
+              ),
+            ),
             const SizedBox(height: 12),
-            _infoRow(Icons.stadium, 'Stadion', item.stadium.isNotEmpty ? item.stadium : '-'),
-            _infoRow(Icons.sports, 'Wasit', item.referee.isNotEmpty ? item.referee : '-'),
-            
-            const SizedBox(height: 32),
+            GlassCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _infoRow(Icons.stadium_rounded, 'Stadion', item.stadium.isNotEmpty ? item.stadium : '-'),
+                  const Divider(color: Colors.white10),
+                  _infoRow(Icons.sports_rounded, 'Wasit', item.referee.isNotEmpty ? item.referee : '-'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // AI Tactical Brief Card
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'AI TACTICAL BRIEF',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                if (!_isLoadingAi)
+                  IconButton(
+                    icon: Icon(Icons.refresh_rounded, color: colorScheme.primary, size: 18),
+                    onPressed: _fetchAiBrief,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            GlassCard(
+              padding: const EdgeInsets.all(16),
+              child: _isLoadingAi
+                  ? Column(
+                      children: [
+                        const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Menganalisis laga dengan Gemini...',
+                          style: GoogleFonts.inter(color: Colors.white60, fontSize: 12),
+                        ),
+                      ],
+                    )
+                  : Text(
+                      _aiTacticalBrief,
+                      style: GoogleFonts.inter(
+                        fontSize: 13.5,
+                        height: 1.5,
+                        color: Colors.white70,
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 24),
+
+            // Time & Tickets conversions
             _buildTimeCard(),
-            
             const SizedBox(height: 24),
             _buildCurrencyCard(),
           ],
@@ -248,19 +269,19 @@ class _MatchDetailViewState extends State<MatchDetailView> {
     return Column(
       children: [
         SizedBox(
-          width: 70,
-          height: 70,
+          width: 64,
+          height: 64,
           child: url.isNotEmpty
-              ? Image.network(url, fit: BoxFit.contain)
-              : const Icon(Icons.shield, size: 50, color: Colors.grey),
+              ? Image.network(url, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.shield, size: 40))
+              : const Icon(Icons.shield, size: 48, color: Colors.white24),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         SizedBox(
           width: 100,
           child: Text(
             name,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -270,23 +291,115 @@ class _MatchDetailViewState extends State<MatchDetailView> {
   }
 
   Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
-          Text('$label:', style: GoogleFonts.inter(color: Colors.grey[700])),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white38, size: 18),
+        const SizedBox(width: 12),
+        Text('$label:', style: GoogleFonts.inter(color: Colors.white60, fontSize: 13)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white),
+            overflow: TextOverflow.ellipsis,
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeCard() {
+    if (widget.item.utcDate == null) return const SizedBox.shrink();
+
+    final utcTime = DateTime.parse(widget.item.utcDate!);
+    final wib = utcTime.add(const Duration(hours: 7));
+    final wita = utcTime.add(const Duration(hours: 8));
+    final wit = utcTime.add(const Duration(hours: 9));
+
+    final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.access_time_rounded, color: Colors.white38, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Konversi Waktu Kick-off',
+                style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _timeRow('WIB (Jakarta)', dateFormat.format(wib)),
+          const Divider(color: Colors.white10),
+          _timeRow('WITA (Bali)', dateFormat.format(wita)),
+          const Divider(color: Colors.white10),
+          _timeRow('WIT (Papua)', dateFormat.format(wit)),
         ],
       ),
+    );
+  }
+
+  Widget _timeRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.inter(color: Colors.white60, fontSize: 13)),
+        Text(value, style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+      ],
+    );
+  }
+
+  Widget _buildCurrencyCard() {
+    if (_isLoadingRates) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_usdRates == null) return const SizedBox.shrink();
+
+    final idr = _baseTicketIdr;
+    final usd = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'USD', usdRates: _usdRates!) ?? 0;
+    final eur = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'EUR', usdRates: _usdRates!) ?? 0;
+    final gbp = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'GBP', usdRates: _usdRates!) ?? 0;
+
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.confirmation_number_outlined, color: Colors.white38, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Estimasi Harga Tiket',
+                style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _currencyRow('IDR', _formatCurrency(idr, 'Rp ')),
+          const Divider(color: Colors.white10),
+          _currencyRow('USD', _formatCurrency(usd, '\$ ')),
+          const Divider(color: Colors.white10),
+          _currencyRow('EUR', _formatCurrency(eur, '€ ')),
+          const Divider(color: Colors.white10),
+          _currencyRow('GBP', _formatCurrency(gbp, '£ ')),
+        ],
+      ),
+    );
+  }
+
+  Widget _currencyRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: GoogleFonts.inter(color: Colors.white60, fontSize: 13)),
+        Text(value, style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+      ],
     );
   }
 }

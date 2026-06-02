@@ -76,7 +76,7 @@ Servis ini menggunakan modul HTTP. Data akan difetch dari server eksternal, dide
 *Controller* peta mengatur koordinat kamera awal (lintang/bujur). Fungsi tambahan pada fitur maps memungkinkan pengguna memasukkan kata kunci pada form pencarian, dan sistem akan menggeser fokus kamera (animasi *camera panning*) ke lokasi yang dicari dengan memberikan titik *marker*.
 
 **D. Sensor Perangkat Keras (Accelerometer, Light, Proximity)**
-Berbagai *listener* diterapkan pada perputaran siklus hidup aplikasi. Accelerometer berjalan secara sinkron pada `tools_controller.dart` atau di latar untuk mendeteksi *threshold* getaran. Light Sensor akan mengubah rasio kecerahan atau tema warna UI saat aplikasi berada dalam cahaya minim, sedangkan Proximity Sensor mencegah sentuhan layar tidak sengaja (saat dikantongi atau dekat telinga).
+Berbagai *listener* diterapkan pada perputaran siklus hidup aplikasi. Accelerometer berjalan secara sinkron pada `tools_controller.dart` atau di latar untuk mendeteksi *threshold* getaran. Light Sensor akan mengubah rasio kecerahan atau tema warna UI saat aplikasi berada dalam cahaya minim, sedangkan Proximity Sensor mencegah sentuhan layar tidak sengaja (saat dikantongi atau dekat telinga).$$
 
 ---
 

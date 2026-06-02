@@ -1,171 +1,429 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'maps_controller.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:intl/intl.dart';
+import 'map_providers.dart';
+import '../../core/theme/theme_provider.dart';
+import '../../core/theme/widgets/glass_widgets.dart';
+import '../../core/utils/audio_provider.dart';
+import '../../data/services/exchange_rate_service.dart';
 
-class MapsView extends StatelessWidget {
+class MapsView extends ConsumerStatefulWidget {
   final bool showBack;
 
   const MapsView({super.key, this.showBack = true});
 
   @override
+  ConsumerState<MapsView> createState() => _MapsViewState();
+}
+
+class _MapsViewState extends ConsumerState<MapsView> {
+  final TextEditingController _searchController = TextEditingController();
+
+  // Dark Map Style JSON Configuration
+  static const String _darkMapStyle = '''
+  [
+    {
+      "elementType": "geometry",
+      "stylers": [{"color": "#0d0d11"}]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [{"color": "#8f9cae"}]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [{"color": "#0d0d11"}]
+    },
+    {
+      "featureType": "administrative",
+      "elementType": "geometry",
+      "stylers": [{"visibility": "off"}]
+    },
+    {
+      "featureType": "poi",
+      "stylers": [{"visibility": "off"}]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry",
+      "stylers": [{"color": "#181824"}]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [{"color": "#29293d"}]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [{"color": "#050508"}]
+    }
+  ]
+  ''';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final MapsController controller = Get.find<MapsController>();
+    final mapState = ref.watch(mapProvider);
+    final mapNotifier = ref.read(mapProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isAmbientDimmed = ref.watch(ambientDimmedProvider);
 
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Obx(
-            () => GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: controller.currentLatLng.value,
-                zoom: 14,
-              ),
-              markers: controller.markers.toSet(),
-              circles: controller.circles.toSet(),
-              polylines: controller.polylines.toSet(),
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              onMapCreated: (gController) {
-                controller.mapController = gController;
-                gController.animateCamera(
-                  CameraUpdate.newLatLngZoom(
-                    controller.currentLatLng.value,
-                    14,
-                  ),
-                );
-              },
+          // 1. Google Map View
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: mapState.currentLatLng,
+              zoom: 14,
             ),
+            markers: mapState.markers,
+            circles: mapState.circles,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            onMapCreated: (controller) {
+              mapNotifier.mapController = controller;
+              controller.setMapStyle(_darkMapStyle);
+            },
           ),
-          if (showBack)
-            Positioned(
-              top: MediaQuery.paddingOf(context).top + 8,
-              left: 12,
-              child: Material(
-                color: Colors.white,
-                shape: const CircleBorder(),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                  onPressed: () => Get.back(),
+
+          // 2. Ambient Light Sensor Contrast Reducer Overlay
+          if (isAmbientDimmed)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  color: Colors.black.withOpacity(0.40),
                 ),
               ),
             ),
+
+          // 3. Search Bar Area
           Positioned(
-            top: MediaQuery.paddingOf(context).top + (showBack ? 60 : 16),
+            top: MediaQuery.paddingOf(context).top + (widget.showBack ? 60 : 16),
             left: 16,
             right: 16,
-            child: Material(
-              elevation: 4,
-              borderRadius: BorderRadius.circular(16),
-              color: Colors.white,
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Cari lapangan futsal...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+            child: Row(
+              children: [
+                if (widget.showBack)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: CircleAvatar(
+                      backgroundColor: const Color(0xFF0A0A0C),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0A0C).withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Cari lapangan futsal terdekat…',
+                        hintStyle: GoogleFonts.inter(color: Colors.white38, fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, color: colorScheme.primary, size: 20),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                      onSubmitted: (val) => mapNotifier.searchPlaces(val),
+                    ),
+                  ),
                 ),
-                onSubmitted: (value) => controller.searchPlaces(value),
-              ),
+              ],
             ),
           ),
+
+          // 4. Loading States Shimmer
+          if (mapState.isLoading)
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 120,
+              child: Shimmer.fromColors(
+                baseColor: const Color(0xFF0A0A0C),
+                highlightColor: const Color(0xFF141418),
+                child: GlassCard(
+                  opacity: 0.1,
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 140, height: 16, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 200, height: 12, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+          // 5. My Location Centering Floating Action Button
           Positioned(
             right: 16,
-            bottom: showBack ? 280 : 280,
+            bottom: mapState.selectedPlace != null ? 300 : 120,
             child: FloatingActionButton(
-              heroTag: 'map_recenter',
-              onPressed: controller.recenterOnUser,
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.red.shade700,
-              child: const Icon(Icons.my_location),
+              heroTag: 'recenter_my_loc',
+              backgroundColor: const Color(0xFF0A0A0C),
+              foregroundColor: colorScheme.primary,
+              shape: const CircleBorder(),
+              onPressed: mapNotifier.recenterOnUser,
+              child: const Icon(Icons.my_location_rounded),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 260,
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  Text(
-                    'Lapangan futsal terdekat',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Obx(
-                      () => controller.isLoading.value &&
-                              controller.placeList.isEmpty
-                          ? const Center(child: CircularProgressIndicator())
-                          : ListView.builder(
-                              itemCount: controller.placeList.length,
-                              itemBuilder: (context, index) {
-                                var toko = controller.placeList[index];
-                                var latToko =
-                                    toko['geometry']['location']['lat'];
-                                var lngToko =
-                                    toko['geometry']['location']['lng'];
 
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  child: ListTile(
-                                    leading: const CircleAvatar(
-                                      backgroundColor: Colors.red,
-                                      child: Icon(Icons.sports_soccer,
-                                          color: Colors.white),
-                                    ),
-                                    title: Text(
-                                      toko['name']?.toString() ?? '',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                    subtitle: Text(
-                                        toko['vicinity']?.toString() ?? ''),
-                                    trailing: TextButton(
-                                      onPressed: () =>
-                                          controller.openDirections(
-                                        (latToko as num).toDouble(),
-                                        (lngToko as num).toDouble(),
-                                      ),
-                                      child: const Text('Rute'),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // 6. Interactive Bottom Sheet for Pitch Details
+          if (mapState.selectedPlace != null)
+            _buildDraggableSheet(context, mapState.selectedPlace!),
         ],
       ),
+    );
+  }
+
+  Widget _buildDraggableSheet(BuildContext context, Map<String, dynamic> place) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.32,
+      minChildSize: 0.20,
+      maxChildSize: 0.55,
+      builder: (context, scrollController) {
+        return GlassCard(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.12))),
+          color: Colors.black,
+          opacity: 0.70,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: _PlaceDetailContent(place: place),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlaceDetailContent extends ConsumerStatefulWidget {
+  final Map<String, dynamic> place;
+
+  const _PlaceDetailContent({required this.place});
+
+  @override
+  ConsumerState<_PlaceDetailContent> createState() => _PlaceDetailContentState();
+}
+
+class _PlaceDetailContentState extends ConsumerState<_PlaceDetailContent> {
+  String _selectedCurrency = 'USD';
+  Map<String, double>? _usdRates;
+  bool _isLoadingRates = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExchangeRates();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PlaceDetailContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.place['place_id'] != widget.place['place_id']) {
+      _loadExchangeRates();
+    }
+  }
+
+  Future<void> _loadExchangeRates() async {
+    setState(() => _isLoadingRates = true);
+    final r = await ExchangeRateService.ratesFromUsdBase();
+    if (mounted) {
+      setState(() {
+        _usdRates = r;
+        _isLoadingRates = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final priceIdr = (widget.place['priceIdr'] as num?)?.toDouble() ?? 150000.0;
+
+    String convertedLabel = '—';
+    if (_usdRates != null) {
+      final converted = ExchangeRateService.idrToTarget(
+        idrAmount: priceIdr,
+        target: _selectedCurrency,
+        usdRates: _usdRates!,
+      );
+      if (converted != null) {
+        final symbol = switch (_selectedCurrency) {
+          'USD' => '\$',
+          'EUR' => '€',
+          'GBP' => '£',
+          _ => '',
+        };
+        convertedLabel = '$symbol ${converted.toStringAsFixed(2)}';
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Drag Indicator bar
+        Center(
+          child: Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                widget.place['name'] ?? 'Nama Lapangan',
+                style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${widget.place['distance'] ?? "0.0"} km',
+                style: GoogleFonts.orbitron(color: colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          widget.place['vicinity'] ?? 'Detail alamat',
+          style: GoogleFonts.inter(color: Colors.white38, fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 20),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Harga Sewa (per jam)',
+                  style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Rp ${NumberFormat.decimalPattern().format(priceIdr)}',
+                  style: GoogleFonts.orbitron(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ],
+            ),
+            // Currency Converter selector dropdown
+            _isLoadingRates
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withOpacity(0.12)),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedCurrency,
+                      underline: const SizedBox.shrink(),
+                      dropdownColor: const Color(0xFF0A0A0C),
+                      style: GoogleFonts.orbitron(color: colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                      items: const [
+                        DropdownMenuItem(value: 'USD', child: Text('USD')),
+                        DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                        DropdownMenuItem(value: 'GBP', child: Text('GBP')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedCurrency = val);
+                      },
+                    ),
+                  ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (!_isLoadingRates)
+          Text(
+            'Konversi: $convertedLabel',
+            style: GoogleFonts.orbitron(fontSize: 14, fontWeight: FontWeight.bold, color: colorScheme.secondary),
+          ),
+        const SizedBox(height: 24),
+
+        // Play Sound ball kick on Book button
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton(
+            onPressed: () {
+              // Play ball kick low-latency sound
+              ref.read(audioFeedbackProvider).playKickSound();
+              
+              // Mock success dialog
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  backgroundColor: const Color(0xFF0A0A0C),
+                  title: Text('Booking Berhasil', style: GoogleFonts.orbitron(fontWeight: FontWeight.bold)),
+                  content: Text(
+                    'Anda telah berhasil menyewa ${widget.place['name']}. Silakan cek struk di lokasi.',
+                    style: GoogleFonts.inter(color: Colors.white70),
+                  ),
+                  actions: [
+                    TextButton(
+                      child: Text('OK', style: TextStyle(color: colorScheme.primary)),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: Text(
+              'Sewa Lapangan Sekarang',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

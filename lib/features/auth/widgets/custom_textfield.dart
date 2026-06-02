@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../core/theme/app_colors.dart';
 
 class CustomTextField extends StatelessWidget {
   final String hintText;
@@ -22,28 +21,33 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.tfBackground,
+        color: const Color(0xFF0A0A0C), // Carbon Gray card surface
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.tfBorder, width: 1.33),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.12),
+          width: 1.0,
+        ),
       ),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
-        style: GoogleFonts.inter(color: AppColors.textDark, fontSize: 14),
+        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          prefixIcon: Icon(prefixIcon, color: AppColors.tfIcon, size: 16),
+          prefixIcon: Icon(prefixIcon, color: colorScheme.primary, size: 20),
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
                     obscureText
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
-                    color: AppColors.tfIcon,
+                    color: colorScheme.primary.withOpacity(0.7),
                     size: 22,
                   ),
                   onPressed: onTogglePassword,
@@ -51,7 +55,7 @@ class CustomTextField extends StatelessWidget {
               : null,
           hintText: hintText,
           hintStyle: GoogleFonts.inter(
-            color: AppColors.tfPlaceholder,
+            color: Colors.white38,
             fontSize: 14,
           ),
         ),

@@ -1,60 +1,65 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
-import 'core/theme/app_colors.dart';
-import 'core/theme/theme_mode_controller.dart';
+import 'core/theme/theme_provider.dart';
 import 'core/utils/notification_helper.dart';
-import 'routes/app_pages.dart';
-import 'routes/app_routes.dart';
+import 'data/locals/database_helper.dart';
+import 'data/models/football_feed_item.dart';
+import 'features/splash/splash_view.dart';
+import 'features/auth/login_view.dart';
+import 'features/auth/register_view.dart';
+import 'features/dashboard/dashboard_view.dart';
+import 'features/home/match_detail_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tzdata.initializeTimeZones();
 
-  await Hive.initFlutter();
-  await Hive.openBox('userBox');
-  await Hive.openBox('gameBox');
+  // Initialize unified SQLite database (guarded for non-web)
+  if (!kIsWeb) {
+    await DatabaseHelper.instance.database;
+  }
 
-  await NotificationHelper.init();
-  Get.put(ThemeModeController(), permanent: true);
+  // Initialize local notifications helper (guarded for non-web)
+  if (!kIsWeb) {
+    await NotificationHelper.init();
+  }
 
-  runApp(const FootyHubApp());
+  runApp(
+    const ProviderScope(
+      child: FootyHubApp(),
+    ),
+  );
 }
 
-class FootyHubApp extends StatelessWidget {
+class FootyHubApp extends ConsumerWidget {
   const FootyHubApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final ThemeModeController theme = Get.find<ThemeModeController>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeData = ref.watch(themeDataProvider);
 
-    final lightTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.light,
-      ),
-    );
-
-    final darkTheme = ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.seaGreen,
-        brightness: Brightness.dark,
-      ),
-    );
-
-    return Obx(
-      () => GetMaterialApp(
-        title: 'FootyHub',
-        debugShowCheckedModeBanner: false,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: theme.themeMode.value,
-        initialRoute: Routes.SPLASH,
-        getPages: AppPages.routes,
-      ),
+    return MaterialApp(
+      title: 'FootyHub',
+      debugShowCheckedModeBanner: false,
+      theme: themeData,
+      initialRoute: '/splash',
+      onGenerateRoute: (settings) {
+        if (settings.name == '/match-detail') {
+          final item = settings.arguments as FootballFeedItem;
+          return MaterialPageRoute(
+            builder: (context) => MatchDetailView(item: item),
+          );
+        }
+        return null;
+      },
+      routes: {
+        '/splash': (context) => const SplashView(),
+        '/auth': (context) => const LoginView(),
+        '/register': (context) => const RegisterView(),
+        '/dashboard': (context) => const DashboardView(),
+      },
     );
   }
 }

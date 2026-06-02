@@ -1,165 +1,187 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/app_colors.dart';
-import '../../routes/app_routes.dart';
 import 'widgets/custom_textfield.dart';
-import 'auth_controller.dart';
+import 'auth_provider.dart';
 
-class RegisterView extends StatelessWidget {
+class RegisterView extends ConsumerStatefulWidget {
   const RegisterView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final AuthController authC = Get.find<AuthController>();
+  ConsumerState<RegisterView> createState() => _RegisterViewState();
+}
 
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController nimController = TextEditingController();
-    final TextEditingController usernameController = TextEditingController();
-    final TextEditingController passwordController = TextEditingController();
-    final TextEditingController confirmPasswordController =
-        TextEditingController();
+class _RegisterViewState extends ConsumerState<RegisterView> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _nimController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  
+  bool _isPasswordHidden = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _nimController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.errorMessage.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFF000000), // Pitch Black
+      appBar: AppBar(
+        title: Text('Daftar Akun', style: GoogleFonts.orbitron(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            children: [
-              const Icon(Icons.sports_soccer, size: 88, color: AppColors.primary),
-              Text(
-                'FootyHub',
-                style: GoogleFonts.inter(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Buat Akun Baru',
+                  style: GoogleFonts.orbitron(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
-              Text(
-                'Daftar akun (backend bcrypt + JWT)',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: AppColors.tfPlaceholder,
+                const SizedBox(height: 6),
+                Text(
+                  'Daftarkan diri Anda untuk masuk ke ekosistem FootyHub',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: Colors.white60,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 28),
-              CustomTextField(
-                controller: nameController,
-                hintText: 'Nama lengkap',
-                prefixIcon: Icons.person_outline,
-              ),
-              CustomTextField(
-                controller: nimController,
-                hintText: 'NIM',
-                prefixIcon: Icons.badge_outlined,
-              ),
-              CustomTextField(
-                controller: usernameController,
-                hintText: 'Username',
-                prefixIcon: Icons.alternate_email,
-              ),
-              Obx(
-                () => CustomTextField(
-                  controller: passwordController,
+                const SizedBox(height: 32),
+                CustomTextField(
+                  controller: _nameController,
+                  hintText: 'Nama Lengkap',
+                  prefixIcon: Icons.badge_outlined,
+                ),
+                CustomTextField(
+                  controller: _nimController,
+                  hintText: 'NIM Mahasiswa',
+                  prefixIcon: Icons.school_outlined,
+                ),
+                CustomTextField(
+                  controller: _usernameController,
+                  hintText: 'Username',
+                  prefixIcon: Icons.person_outline_rounded,
+                ),
+                CustomTextField(
+                  controller: _passwordController,
                   hintText: 'Password',
-                  prefixIcon: Icons.lock_outline,
+                  prefixIcon: Icons.lock_outline_rounded,
                   isPassword: true,
-                  obscureText: authC.isPasswordHidden.value,
-                  onTogglePassword: () => authC.togglePasswordVisibility(),
+                  obscureText: _isPasswordHidden,
+                  onTogglePassword: () {
+                    setState(() {
+                      _isPasswordHidden = !_isPasswordHidden;
+                    });
+                  },
                 ),
-              ),
-              Obx(
-                () => CustomTextField(
-                  controller: confirmPasswordController,
-                  hintText: 'Konfirmasi password',
-                  prefixIcon: Icons.lock_outline,
-                  isPassword: true,
-                  obscureText: authC.isConfirmPasswordHidden.value,
-                  onTogglePassword: () =>
-                      authC.toggleConfirmPasswordVisibility(),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Obx(
-                () => SizedBox(
+                const SizedBox(height: 16),
+                SizedBox(
                   width: double.infinity,
                   height: 54,
                   child: ElevatedButton(
-                    onPressed: authC.isLoading.value
+                    onPressed: authState.isLoading
                         ? null
                         : () async {
-                            if (passwordController.text !=
-                                confirmPasswordController.text) {
-                              Get.snackbar(
-                                'Error',
-                                'Konfirmasi password tidak cocok',
+                            final success = await ref.read(authProvider.notifier).register(
+                                  _nameController.text,
+                                  _nimController.text,
+                                  _usernameController.text,
+                                  _passwordController.text,
+                                );
+                            if (success && mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Registrasi berhasil! Silakan login.'),
+                                  backgroundColor: Colors.green,
+                                ),
                               );
-                              return;
-                            }
-                            bool success = await authC.register(
-                              nameController.text,
-                              nimController.text,
-                              usernameController.text,
-                              passwordController.text,
-                            );
-                            if (success) {
-                              Get.back();
-                              Get.snackbar(
-                                'Berhasil',
-                                'Akun berhasil dibuat. Silakan login.',
-                                backgroundColor: Colors.green,
-                                colorText: Colors.white,
-                              );
-                            } else {
-                              Get.snackbar(
-                                'Gagal',
-                                authC.errorMessage.value,
-                                backgroundColor: Colors.redAccent,
-                                colorText: Colors.white,
-                              );
+                              Navigator.pop(context);
                             }
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: Colors.black,
+                      disabledBackgroundColor: colorScheme.primary.withOpacity(0.4),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                       ),
+                      elevation: 0,
                     ),
-                    child: authC.isLoading.value
-                        ? const CircularProgressIndicator(color: Colors.white)
+                    child: authState.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2.5),
+                          )
                         : Text(
                             'Daftar',
                             style: GoogleFonts.inter(
                               fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
                             ),
                           ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Sudah punya akun? ',
-                    style: GoogleFonts.inter(color: AppColors.tfPlaceholder),
-                  ),
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Text(
-                      'Login',
-                      style: GoogleFonts.inter(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Sudah punya akun? ',
+                      style: GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text(
+                        'Masuk',
+                        style: GoogleFonts.inter(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
