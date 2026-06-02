@@ -146,6 +146,55 @@ class HomeView extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
 
+                    // Services section
+                    Text(
+                      'LAYANAN FOOTYHUB',
+                      style: GoogleFonts.orbitron(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildServiceCard(
+                            context: context,
+                            icon: Icons.chat_bubble_outline_rounded,
+                            title: 'AI PUNDIT',
+                            subtitle: 'Tanya Jawab AI',
+                            color: colorScheme.primary,
+                            onTap: () => Navigator.pushNamed(context, '/chatbot'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildServiceCard(
+                            context: context,
+                            icon: Icons.currency_exchange_rounded,
+                            title: 'KONVERSI',
+                            subtitle: 'Uang & Waktu',
+                            color: Colors.cyanAccent,
+                            onTap: () => Navigator.pushNamed(context, '/conversion'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildServiceCard(
+                            context: context,
+                            icon: Icons.sports_esports_outlined,
+                            title: 'MINI GAME',
+                            subtitle: 'Pantul Bola',
+                            color: Colors.amberAccent,
+                            onTap: () => Navigator.pushNamed(context, '/game'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
                     Text(
                       'RILIS BERITA TERKINI',
                       style: GoogleFonts.orbitron(
@@ -208,6 +257,48 @@ class HomeView extends ConsumerWidget {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServiceCard({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GlassCard(
+      opacity: 0.05,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.orbitron(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(fontSize: 8, color: Colors.white30),
+            ),
           ],
         ),
       ),

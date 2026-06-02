@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/storage_util.dart';
 import '../../data/locals/database_helper.dart';
 
@@ -130,11 +129,8 @@ final favoriteTeamProvider = StateNotifierProvider<FavoriteTeamNotifier, Favorit
 });
 
 final themeDataProvider = Provider<ThemeData>((ref) {
-  final favoriteTeam = ref.watch(favoriteTeamProvider);
-  final isAmbientDimmed = ref.watch(ambientDimmedProvider);
-  
-  final primaryColor = favoriteTeam.primaryColor;
-  final accentColor = favoriteTeam.accentColor;
+  const primaryColor = Color(0xFF39FF14); // Neon Green
+  const accentColor = Color(0xFF00E5FF); // Cyan
 
   return ThemeData(
     useMaterial3: true,

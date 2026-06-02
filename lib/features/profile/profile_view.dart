@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../core/theme/theme_provider.dart';
 import '../../core/theme/widgets/glass_widgets.dart';
 import '../auth/auth_provider.dart';
 import 'profile_providers.dart';
@@ -27,8 +26,6 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
     final profileNotifier = ref.read(profileProvider.notifier);
-    final favoriteTeam = ref.watch(favoriteTeamProvider);
-    final favoriteTeamNotifier = ref.read(favoriteTeamProvider.notifier);
     
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -134,57 +131,7 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Dynamic Team Theme customization
-                  _buildSectionHeader(Icons.palette_outlined, 'TEMA AKUN KUSTOM', colorScheme.primary),
-                  const SizedBox(height: 10),
-                  GlassCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pilih Tim Favorit Anda untuk merubah warna aksen aplikasi secara instan:',
-                          style: GoogleFonts.inter(color: Colors.white70, fontSize: 12),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<FavoriteTeam>(
-                          value: favoriteTeam,
-                          dropdownColor: const Color(0xFF0A0A0C),
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
-                            ),
-                            filled: true,
-                            fillColor: Colors.black,
-                          ),
-                          items: FavoriteTeam.values.map((team) {
-                            return DropdownMenuItem(
-                              value: team,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 12,
-                                    height: 12,
-                                    decoration: BoxDecoration(color: team.primaryColor, shape: BoxShape.circle),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(team.displayName),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              favoriteTeamNotifier.setFavoriteTeam(val);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+
 
                   // Academic Profile Info
                   _buildSectionHeader(Icons.menu_book_rounded, 'PROFIL AKADEMIS', colorScheme.primary),

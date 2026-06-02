@@ -66,16 +66,26 @@ final fixturesProvider = FutureProvider.family<List<Map<String, dynamic>>, int>(
 
   if (ApiConstants.footballApiKey != 'MASUKKAN_API_KEY_API_FOOTBALL_ANDA') {
     try {
-      final uri = Uri.parse('${ApiConstants.footballBaseUrl}/fixtures?league=$leagueId&next=20');
+      final uri = Uri.parse('${ApiConstants.footballBaseUrl}/fixtures?league=$leagueId&season=2024');
       final res = await http.get(uri, headers: {
         'x-apisports-key': ApiConstants.footballApiKey,
-      }).timeout(const Duration(seconds: 12));
+      }).timeout(const Duration(seconds: 15));
       
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body) as Map<String, dynamic>;
         final responseList = data['response'] as List<dynamic>? ?? [];
         if (responseList.isNotEmpty) {
-          await db.upsertFixtures(leagueId, responseList);
+          // Sort chronologically
+          responseList.sort((a, b) {
+            final dateA = a['fixture']?['date']?.toString() ?? '';
+            final dateB = b['fixture']?['date']?.toString() ?? '';
+            return dateA.compareTo(dateB);
+          });
+          // Use the last 30 fixtures for display limit
+          final displayList = responseList.length > 30
+              ? responseList.sublist(responseList.length - 30)
+              : responseList;
+          await db.upsertFixtures(leagueId, displayList);
         }
       }
     } catch (_) {}

@@ -11,6 +11,9 @@ import 'features/auth/login_view.dart';
 import 'features/auth/register_view.dart';
 import 'features/dashboard/dashboard_view.dart';
 import 'features/home/match_detail_view.dart';
+import 'features/game/game_view.dart';
+import 'features/home/conversion_view.dart';
+import 'features/home/chatbot_view.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,6 +62,9 @@ class FootyHubApp extends ConsumerWidget {
         '/auth': (context) => const LoginView(),
         '/register': (context) => const RegisterView(),
         '/dashboard': (context) => const DashboardView(),
+        '/game': (context) => const GameView(),
+        '/conversion': (context) => const ConversionView(),
+        '/chatbot': (context) => const ChatbotView(),
       },
     );
   }

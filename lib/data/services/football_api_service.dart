@@ -52,7 +52,7 @@ class FootballApiService {
       }
 
       final nextUri = Uri.parse(
-        '${ApiConstants.footballBaseUrl}/fixtures?league=39&next=12',
+        '${ApiConstants.footballBaseUrl}/fixtures?league=39&season=2024',
       );
       final nextRes = await http
           .get(nextUri, headers: _headers)
@@ -60,7 +60,11 @@ class FootballApiService {
       if (nextRes.statusCode == 200) {
         final data = jsonDecode(nextRes.body) as Map<String, dynamic>;
         final list = data['response'] as List<dynamic>? ?? [];
-        for (final raw in list) {
+        final reversedList = list.reversed.toList();
+        final limitList = reversedList.length > 15
+            ? reversedList.sublist(0, 15)
+            : reversedList;
+        for (final raw in limitList) {
           final o = raw as Map<String, dynamic>;
           final id = o['fixture']?['id']?.toString() ?? '';
           if (items.any((e) => e.id == id)) continue;
@@ -69,6 +73,47 @@ class FootballApiService {
       }
     } catch (e) {
       // Biarkan pemanggil memakai cache SQLite
+    }
+
+    if (items.isEmpty) {
+      return [
+        FootballFeedItem(
+          id: 'mock1',
+          title: 'Arsenal vs Chelsea',
+          subtitle: '3 — 1 · Selesai',
+          imageUrl: 'https://media.api-sports.io/football/teams/42.png',
+          statusShort: 'FT',
+          utcDate: DateTime.now().toString(),
+          leagueName: 'Premier League',
+        ),
+        FootballFeedItem(
+          id: 'mock2',
+          title: 'Real Madrid vs Barcelona',
+          subtitle: 'vs · Belum Mulai',
+          imageUrl: 'https://media.api-sports.io/football/teams/541.png',
+          statusShort: 'NS',
+          utcDate: DateTime.now().add(const Duration(hours: 2)).toString(),
+          leagueName: 'La Liga',
+        ),
+        FootballFeedItem(
+          id: 'mock3',
+          title: 'Bayern Munich vs Dortmund',
+          subtitle: '2 — 2 · Selesai',
+          imageUrl: 'https://media.api-sports.io/football/teams/157.png',
+          statusShort: 'FT',
+          utcDate: DateTime.now().subtract(const Duration(hours: 4)).toString(),
+          leagueName: 'Bundesliga',
+        ),
+        FootballFeedItem(
+          id: 'mock4',
+          title: 'Inter vs AC Milan',
+          subtitle: '1 — 0 · Selesai',
+          imageUrl: 'https://media.api-sports.io/football/teams/505.png',
+          statusShort: 'FT',
+          utcDate: DateTime.now().subtract(const Duration(hours: 12)).toString(),
+          leagueName: 'Serie A',
+        ),
+      ];
     }
 
     return items;
