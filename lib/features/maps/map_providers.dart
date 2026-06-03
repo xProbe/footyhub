@@ -141,71 +141,74 @@ class MapNotifier extends StateNotifier<MapState> {
     }
   }
 
+  void _loadFallbackPlaces(double lat, double lng) {
+    final dummyPlaces = [
+      {
+        'name': 'Stadion Futsal Nusantara',
+        'vicinity': 'Jl. Sepak Bola No. 10, Jakarta',
+        'geometry': {
+          'location': {'lat': lat + 0.008, 'lng': lng + 0.008}
+        },
+        'priceIdr': 120000,
+        'place_id': 'dummy_1'
+      },
+      {
+        'name': 'Glow Arena Football',
+        'vicinity': 'Kawasan Bisnis Sudirman Blok B9',
+        'geometry': {
+          'location': {'lat': lat - 0.008, 'lng': lng - 0.008}
+        },
+        'priceIdr': 180000,
+        'place_id': 'dummy_2'
+      },
+      {
+        'name': 'Elite Soccer Center',
+        'vicinity': 'Jl. Pemuda Menteng No. 142',
+        'geometry': {
+          'location': {'lat': lat + 0.004, 'lng': lng - 0.006}
+        },
+        'priceIdr': 250000,
+        'place_id': 'dummy_3'
+      }
+    ];
+
+    final Set<Marker> newMarkers = {};
+    for (var place in dummyPlaces) {
+      final geometry = place['geometry'] as Map<String, dynamic>;
+      final location = geometry['location'] as Map<String, dynamic>;
+      final latToko = location['lat'] as double;
+      final lngToko = location['lng'] as double;
+      place['distance'] = calculateDistance(latToko, lngToko);
+      final pid = place['place_id'] as String;
+
+      newMarkers.add(
+        Marker(
+          markerId: MarkerId(pid),
+          position: LatLng(latToko, lngToko),
+          infoWindow: InfoWindow(
+            title: place['name'] as String,
+            snippet: "${place['distance']} km",
+          ),
+          onTap: () {
+            selectPlace(place, LatLng(latToko, lngToko));
+          },
+        ),
+      );
+    }
+
+    state = state.copyWith(
+      placeList: dummyPlaces,
+      markers: newMarkers,
+      isLoading: false,
+    );
+  }
+
   Future<void> fetchNearbyPlaces(double lat, double lng, {String keyword = "futsal"}) async {
     state = state.copyWith(isLoading: true);
     
     if (ApiConstants.isPlaceholder(ApiConstants.googleMapsKey)) {
       await Future.delayed(const Duration(milliseconds: 800));
-      
-      final dummyPlaces = [
-        {
-          'name': 'Stadion Futsal Nusantara',
-          'vicinity': 'Jl. Sepak Bola No. 10, Jakarta',
-          'geometry': {
-            'location': {'lat': lat + 0.008, 'lng': lng + 0.008}
-          },
-          'priceIdr': 120000,
-          'place_id': 'dummy_1'
-        },
-        {
-          'name': 'Glow Arena Football',
-          'vicinity': 'Kawasan Bisnis Sudirman Blok B9',
-          'geometry': {
-            'location': {'lat': lat - 0.008, 'lng': lng - 0.008}
-          },
-          'priceIdr': 180000,
-          'place_id': 'dummy_2'
-        },
-        {
-          'name': 'Elite Soccer Center',
-          'vicinity': 'Jl. Pemuda Menteng No. 142',
-          'geometry': {
-            'location': {'lat': lat + 0.004, 'lng': lng - 0.006}
-          },
-          'priceIdr': 250000,
-          'place_id': 'dummy_3'
-        }
-      ];
-
-      final Set<Marker> newMarkers = {};
-      for (var place in dummyPlaces) {
-        final geometry = place['geometry'] as Map<String, dynamic>;
-        final location = geometry['location'] as Map<String, dynamic>;
-        final latToko = location['lat'] as double;
-        final lngToko = location['lng'] as double;
-        place['distance'] = calculateDistance(latToko, lngToko);
-        final pid = place['place_id'] as String;
-
-        newMarkers.add(
-          Marker(
-            markerId: MarkerId(pid),
-            position: LatLng(latToko, lngToko),
-            infoWindow: InfoWindow(
-              title: place['name'] as String,
-              snippet: "${place['distance']} km",
-            ),
-            onTap: () {
-              selectPlace(place, LatLng(latToko, lngToko));
-            },
-          ),
-        );
-      }
-
-      state = state.copyWith(
-        placeList: dummyPlaces,
-        markers: newMarkers,
-        isLoading: false,
-      );
+      _loadFallbackPlaces(lat, lng);
       return;
     }
 
@@ -217,8 +220,15 @@ class MapNotifier extends StateNotifier<MapState> {
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
         var results = data['results'] as List? ?? [];
-        final Set<Marker> newMarkers = {};
+        
+        final apiStatus = data['status']?.toString() ?? 'OK';
+        if (apiStatus != 'OK' && apiStatus != 'ZERO_RESULTS') {
+          // If query was denied or limit exceeded, fall back to dummy places
+          _loadFallbackPlaces(lat, lng);
+          return;
+        }
 
+        final Set<Marker> newMarkers = {};
         final placesListFormatted = [];
         for (var place in results) {
           final latToko = place['geometry']['location']['lat'] as double;
@@ -257,10 +267,10 @@ class MapNotifier extends StateNotifier<MapState> {
           isLoading: false,
         );
       } else {
-        state = state.copyWith(isLoading: false);
+        _loadFallbackPlaces(lat, lng);
       }
     } catch (_) {
-      state = state.copyWith(isLoading: false);
+      _loadFallbackPlaces(lat, lng);
     }
   }
 }

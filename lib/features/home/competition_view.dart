@@ -373,172 +373,277 @@ class _CompetitionViewState extends ConsumerState<CompetitionView> with SingleTi
     );
   }
 
+  List<String> _getSquadForTeam(String teamName) {
+    final name = teamName.toLowerCase();
+    if (name.contains('madrid')) {
+      return ['Mbappé', 'Vinícius', 'Bellingham', 'Valverde', 'Camavinga', 'Modrić', 'Carvajal', 'Mendy', 'Rüdiger', 'Courtois'];
+    } else if (name.contains('barcelona') || name.contains('barca')) {
+      return ['Lewandowski', 'Yamal', 'Raphinha', 'Pedri', 'Gavi', 'De Jong', 'Koundé', 'Araújo', 'Cubarsí', 'Ter Stegen'];
+    } else if (name.contains('city')) {
+      return ['Haaland', 'Foden', 'De Bruyne', 'Rodri', 'Bernardo', 'Grealish', 'Walker', 'Gvardiol', 'Dias', 'Ederson'];
+    } else if (name.contains('arsenal')) {
+      return ['Saka', 'Martinelli', 'Ødegaard', 'Rice', 'Merino', 'Partey', 'White', 'Gabriel', 'Saliba', 'Raya'];
+    } else if (name.contains('chelsea')) {
+      return ['Jackson', 'Palmer', 'Madueke', 'Fernández', 'Caicedo', 'Lavia', 'James', 'Cucurella', 'Colwill', 'Sánchez'];
+    } else if (name.contains('liverpool')) {
+      return ['Salah', 'Diaz', 'Szoboszlai', 'Mac Allister', 'Gravenberch', 'Trent', 'Robertson', 'Van Dijk', 'Konaté', 'Alisson'];
+    } else if (name.contains('united')) {
+      return ['Højlund', 'Rashford', 'Fernandes', 'Mainoo', 'Ugarte', 'Dalot', 'Martinez', 'De Ligt', 'Mazraoui', 'Onana'];
+    } else if (name.contains('inter')) {
+      return ['Lautaro', 'Thuram', 'Barella', 'Calhanoglu', 'Mkhitaryan', 'Dimarco', 'Darmian', 'Bastoni', 'Acerbi', 'Sommer'];
+    } else if (name.contains('milan')) {
+      return ['Leão', 'Morata', 'Pulisic', 'Reijnders', 'Fofana', 'Hernández', 'Emerson', 'Tomori', 'Gabbia', 'Maignan'];
+    } else if (name.contains('juventus')) {
+      return ['Vlahović', 'Yildiz', 'Koopmeiners', 'Locatelli', 'Thuram', 'Cambiaso', 'Bremer', 'Gatti', 'Di Gregorio', 'Danilo'];
+    } else if (name.contains('bayern')) {
+      return ['Kane', 'Musiala', 'Sané', 'Olise', 'Kimmich', 'Palhinha', 'Davies', 'Upamecano', 'Kim', 'Neuer'];
+    } else if (name.contains('dortmund')) {
+      return ['Guirassy', 'Brandt', 'Sabitzer', 'Can', 'Gross', 'Adeyemi', 'Ryerson', 'Schlotterbeck', 'Süle', 'Kobel'];
+    } else if (name.contains('psg') || name.contains('paris')) {
+      return ['Dembélé', 'Barcola', 'Neves', 'Vitinha', 'Zaïre-Emery', 'Hakimi', 'Mendes', 'Marquinhos', 'Pacho', 'Donnarumma'];
+    }
+    // Generic squads for other teams
+    return ['Striker', 'Winger', 'Playmaker', 'Midfielder', 'Anchor', 'Fullback', 'Centerback', 'Sweeper', 'Stopper', 'Keeper'];
+  }
+
   // ==========================================
   // TAB 3: MATCH CENTER (Formation & Timeline)
   // ==========================================
   Widget _buildMatchCenterTab(int leagueId) {
+    final fixturesAsync = ref.watch(fixturesProvider(leagueId));
     final colorScheme = Theme.of(context).colorScheme;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Match Summary Card
-          GlassCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Text('Laga Terakhir Sorotan', style: GoogleFonts.orbitron(fontSize: 10, color: colorScheme.primary, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Arsenal', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Image.network('https://media.api-sports.io/football/teams/42.png', width: 40, height: 40),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('3 — 1', style: GoogleFonts.orbitron(fontSize: 28, fontWeight: FontWeight.bold, color: colorScheme.primary)),
-                    ),
-                    Image.network('https://media.api-sports.io/football/teams/49.png', width: 40, height: 40),
-                    const SizedBox(width: 8),
-                    const Text('Chelsea', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text('Selesai · Emirates Stadium', style: GoogleFonts.inter(fontSize: 12, color: Colors.white38)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
+    return fixturesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, _) => Center(child: Text('Gagal memuat Match Center: $err')),
+      data: (list) {
+        if (list.isEmpty) {
+          return const Center(child: Text('Tidak ada pertandingan untuk Match Center.', style: TextStyle(color: Colors.white70)));
+        }
 
-          // Player Formation chart
-          Text('FORMASI TAKTIS', style: GoogleFonts.orbitron(fontSize: 13, fontWeight: FontWeight.bold, color: colorScheme.primary)),
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Highlight a live match, or a finished match, or the first available match
+        final featuredMatch = list.firstWhere(
+          (f) => f['status_short'] == 'LIVE' || f['status_short'] == '1H' || f['status_short'] == '2H' || f['status_short'] == 'HT',
+          orElse: () => list.firstWhere(
+            (f) => f['status_short'] == 'FT',
+            orElse: () => list.first,
+          ),
+        );
+
+        final homeName = featuredMatch['home_name'] ?? 'Home Team';
+        final awayName = featuredMatch['away_name'] ?? 'Away Team';
+        final homeLogo = featuredMatch['home_logo'] ?? '';
+        final awayLogo = featuredMatch['away_logo'] ?? '';
+        
+        final homeScoreVal = featuredMatch['home_score'] as int?;
+        final awayScoreVal = featuredMatch['away_score'] as int?;
+        final scoreText = homeScoreVal != null ? '$homeScoreVal — $awayScoreVal' : 'VS';
+        
+        final isLive = featuredMatch['status_short'] == '1H' || featuredMatch['status_short'] == '2H' || featuredMatch['status_short'] == 'HT' || featuredMatch['status_short'] == 'LIVE';
+        final statusLabel = isLive ? 'LIVE · ${featuredMatch['status_short']}' : (featuredMatch['status_short'] == 'FT' ? 'Selesai' : 'Belum Dimulai');
+
+        final homeSquad = _getSquadForTeam(homeName);
+        final awaySquad = _getSquadForTeam(awayName);
+
+        // Generate stats relative to scores for realism
+        final hs = homeScoreVal ?? 0;
+        final as = awayScoreVal ?? 0;
+        final double posHome = hs > as ? 0.54 + (hs - as) * 0.02 : (hs < as ? 0.46 - (as - hs) * 0.02 : 0.50);
+        final double posAway = 1.0 - posHome;
+        
+        final totalShotsHome = 9 + hs * 2 + (leagueId % 3);
+        final totalShotsAway = 8 + as * 2 + (leagueId % 2);
+
+        final shotsOnTargetHome = (totalShotsHome * 0.4).round() + hs;
+        final shotsOnTargetAway = (totalShotsAway * 0.35).round() + as;
+
+        final foulsHome = 8 + (leagueId % 5);
+        final foulsAway = 9 + (leagueId % 4);
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Match Summary Card
+              GlassCard(
+                padding: const EdgeInsets.all(20),
+                child: Column(
                   children: [
-                    Text('Arsenal (4-3-3)', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text('Chelsea (4-2-3-1)', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Graphical Pitch Formation mock
-                Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B5E20).withOpacity(0.2), // Football grass dark green
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.08)),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Center line
-                      Center(
-                        child: Container(
-                          width: double.infinity,
-                          height: 1,
-                          color: Colors.white24,
-                        ),
-                      ),
-                      // Center circle
-                      Center(
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white24),
-                            shape: BoxShape.circle,
+                    Text('JADWAL UTAMA UTAMA', style: GoogleFonts.orbitron(fontSize: 10, color: colorScheme.primary, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Flexible(child: Text(homeName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis)),
+                              const SizedBox(width: 8),
+                              Image.network(homeLogo, width: 32, height: 32, errorBuilder: (_, __, ___) => const Icon(Icons.shield)),
+                            ],
                           ),
                         ),
-                      ),
-                      // Home Players dot indicators
-                      Positioned(
-                        top: 20,
-                        left: 40,
-                        child: _playerDot('Gabriel', colorScheme.primary),
-                      ),
-                      Positioned(
-                        top: 20,
-                        right: 40,
-                        child: _playerDot('Saliba', colorScheme.primary),
-                      ),
-                      Positioned(
-                        top: 50,
-                        left: 80,
-                        child: _playerDot('Rice', colorScheme.primary),
-                      ),
-                      Positioned(
-                        top: 50,
-                        right: 80,
-                        child: _playerDot('Ødegaard', colorScheme.primary),
-                      ),
-                      Positioned(
-                        top: 80,
-                        left: 130,
-                        child: _playerDot('Saka', colorScheme.primary),
-                      ),
-
-                      // Away Players dot indicators
-                      Positioned(
-                        bottom: 20,
-                        left: 40,
-                        child: _playerDot('Silva', Colors.cyanAccent),
-                      ),
-                      Positioned(
-                        bottom: 20,
-                        right: 40,
-                        child: _playerDot('Disasi', Colors.cyanAccent),
-                      ),
-                      Positioned(
-                        bottom: 50,
-                        left: 80,
-                        child: _playerDot('Caicedo', Colors.cyanAccent),
-                      ),
-                      Positioned(
-                        bottom: 50,
-                        right: 80,
-                        child: _playerDot('Enzo', Colors.cyanAccent),
-                      ),
-                      Positioned(
-                        bottom: 85,
-                        left: 130,
-                        child: _playerDot('Jackson', Colors.cyanAccent),
-                      ),
-                    ],
-                  ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            scoreText,
+                            style: GoogleFonts.orbitron(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: isLive ? Colors.redAccent : colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Image.network(awayLogo, width: 32, height: 32, errorBuilder: (_, __, ___) => const Icon(Icons.shield)),
+                              const SizedBox(width: 8),
+                              Flexible(child: Text(awayName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text('$statusLabel · ${featuredMatch['venue'] ?? "Stadion"}', style: GoogleFonts.inter(fontSize: 12, color: Colors.white38)),
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+              ),
+              const SizedBox(height: 16),
 
-          // Stats
-          Text('STATISTIK PERTANDINGAN', style: GoogleFonts.orbitron(fontSize: 13, fontWeight: FontWeight.bold, color: colorScheme.primary)),
-          const SizedBox(height: 10),
-          GlassCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildStatRow('Penguasaan Bola', '57%', '43%', 0.57, 0.43, colorScheme.primary, Colors.cyanAccent),
-                const SizedBox(height: 12),
-                _buildStatRow('Total Tendangan', '16', '9', 0.64, 0.36, colorScheme.primary, Colors.cyanAccent),
-                const SizedBox(height: 12),
-                _buildStatRow('Tendangan ke Gawang', '7', '3', 0.70, 0.30, colorScheme.primary, Colors.cyanAccent),
-                const SizedBox(height: 12),
-                _buildStatRow('Pelanggaran', '8', '12', 0.40, 0.60, colorScheme.primary, Colors.cyanAccent),
-              ],
-            ),
+              // Player Formation chart
+              Text('FORMASI TAKTIS', style: GoogleFonts.orbitron(fontSize: 13, fontWeight: FontWeight.bold, color: colorScheme.primary)),
+              const SizedBox(height: 10),
+              GlassCard(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('$homeName (4-3-3)', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white70)),
+                        Text('$awayName (4-2-3-1)', style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white70)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Graphical Pitch Formation mock
+                    Container(
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B5E20).withOpacity(0.15), // Football grass dark green
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: Stack(
+                        children: [
+                          // Center line
+                          Center(
+                            child: Container(
+                              width: double.infinity,
+                              height: 1,
+                              color: Colors.white24,
+                            ),
+                          ),
+                          // Center circle
+                          Center(
+                            child: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.white24),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                          // Home Players dot indicators
+                          Positioned(
+                            top: 20,
+                            left: 40,
+                            child: _playerDot(homeSquad[6], colorScheme.primary),
+                          ),
+                          Positioned(
+                            top: 20,
+                            right: 40,
+                            child: _playerDot(homeSquad[8], colorScheme.primary),
+                          ),
+                          Positioned(
+                            top: 50,
+                            left: 80,
+                            child: _playerDot(homeSquad[3], colorScheme.primary),
+                          ),
+                          Positioned(
+                            top: 50,
+                            right: 80,
+                            child: _playerDot(homeSquad[2], colorScheme.primary),
+                          ),
+                          Positioned(
+                            top: 80,
+                            left: 130,
+                            child: _playerDot(homeSquad[0], colorScheme.primary),
+                          ),
+
+                          // Away Players dot indicators
+                          Positioned(
+                            bottom: 20,
+                            left: 40,
+                            child: _playerDot(awaySquad[6], Colors.cyanAccent),
+                          ),
+                          Positioned(
+                            bottom: 20,
+                            right: 40,
+                            child: _playerDot(awaySquad[8], Colors.cyanAccent),
+                          ),
+                          Positioned(
+                            bottom: 50,
+                            left: 80,
+                            child: _playerDot(awaySquad[3], Colors.cyanAccent),
+                          ),
+                          Positioned(
+                            bottom: 50,
+                            right: 80,
+                            child: _playerDot(awaySquad[2], Colors.cyanAccent),
+                          ),
+                          Positioned(
+                            bottom: 85,
+                            left: 130,
+                            child: _playerDot(awaySquad[0], Colors.cyanAccent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Stats
+              Text('STATISTIK PERTANDINGAN', style: GoogleFonts.orbitron(fontSize: 13, fontWeight: FontWeight.bold, color: colorScheme.primary)),
+              const SizedBox(height: 10),
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildStatRow('Penguasaan Bola', '${(posHome*100).round()}%', '${(posAway*100).round()}%', posHome, posAway, colorScheme.primary, Colors.cyanAccent),
+                    const SizedBox(height: 12),
+                    _buildStatRow('Total Tendangan', '$totalShotsHome', '$totalShotsAway', totalShotsHome / (totalShotsHome + totalShotsAway), totalShotsAway / (totalShotsHome + totalShotsAway), colorScheme.primary, Colors.cyanAccent),
+                    const SizedBox(height: 12),
+                    _buildStatRow('Tendangan ke Gawang', '$shotsOnTargetHome', '$shotsOnTargetAway', shotsOnTargetHome / (shotsOnTargetHome + shotsOnTargetAway), shotsOnTargetAway / (shotsOnTargetHome + shotsOnTargetAway), colorScheme.primary, Colors.cyanAccent),
+                    const SizedBox(height: 12),
+                    _buildStatRow('Pelanggaran', '$foulsHome', '$foulsAway', foulsHome / (foulsHome + foulsAway), foulsAway / (foulsHome + foulsAway), colorScheme.primary, Colors.cyanAccent),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
+}
 
   Widget _playerDot(String name, Color color) {
     return Column(

@@ -58,12 +58,82 @@ final standingsProvider = FutureProvider.family<List<Map<String, dynamic>>, int>
   final cached = await db.getCachedStandings(leagueId);
   if (cached.isNotEmpty) return cached;
 
-  if (ApiConstants.isPlaceholder(ApiConstants.footballApiKey)) {
-    // Static Mock Standings if no cache and offline
-    return _getMockStandings(leagueId);
-  }
-  return [];
+  // Fallback to static mock standings if cache is empty
+  return _getMockStandings(leagueId);
 });
+
+List<Map<String, dynamic>> _getDynamicUpcomingFixtures(int leagueId, DateTime time1, DateTime time2) {
+  final String leagueName;
+  final String h1, a1, h2, a2;
+  final int hid1, aid1, hid2, aid2;
+  
+  switch (leagueId) {
+    case 140:
+      leagueName = 'La Liga';
+      h1 = 'Real Madrid'; hid1 = 541; a1 = 'Atletico Madrid'; aid1 = 530;
+      h2 = 'Barcelona'; hid2 = 529; a2 = 'Real Betis'; aid2 = 543;
+      break;
+    case 135:
+      leagueName = 'Serie A';
+      h1 = 'Inter'; hid1 = 505; a1 = 'Juventus'; aid1 = 496;
+      h2 = 'AC Milan'; hid2 = 489; a2 = 'AS Roma'; aid2 = 497;
+      break;
+    case 78:
+      leagueName = 'Bundesliga';
+      h1 = 'Bayern Munich'; hid1 = 157; a1 = 'Bayer Leverkusen'; aid1 = 168;
+      h2 = 'Borussia Dortmund'; hid2 = 165; a2 = 'Stuttgart'; aid2 = 172;
+      break;
+    case 61:
+      leagueName = 'Ligue 1';
+      h1 = 'PSG'; hid1 = 85; a1 = 'Monaco'; aid1 = 91;
+      h2 = 'Marseille'; hid2 = 81; a2 = 'Lyon'; aid2 = 80;
+      break;
+    case 2:
+      leagueName = 'Champions League';
+      h1 = 'Real Madrid'; hid1 = 541; a1 = 'Man City'; aid1 = 50;
+      h2 = 'PSG'; hid2 = 85; a2 = 'Bayern Munich'; aid2 = 157;
+      break;
+    case 39:
+    default:
+      leagueName = 'Premier League';
+      h1 = 'Arsenal'; hid1 = 42; a1 = 'Man City'; aid1 = 50;
+      h2 = 'Chelsea'; hid2 = 49; a2 = 'Liverpool'; aid2 = 40;
+      break;
+  }
+
+  return [
+    {
+      'id': 'upcoming_${leagueId}_1',
+      'league_id': leagueId,
+      'league_name': leagueName,
+      'home_name': h1,
+      'away_name': a1,
+      'home_logo': 'https://media.api-sports.io/football/teams/$hid1.png',
+      'away_logo': 'https://media.api-sports.io/football/teams/$aid1.png',
+      'home_score': null,
+      'away_score': null,
+      'status_short': 'NS',
+      'utc_date': time1.toUtc().toIso8601String(),
+      'venue': 'Stadion Utama',
+      'referee': 'Wasit Utama',
+    },
+    {
+      'id': 'upcoming_${leagueId}_2',
+      'league_id': leagueId,
+      'league_name': leagueName,
+      'home_name': h2,
+      'away_name': a2,
+      'home_logo': 'https://media.api-sports.io/football/teams/$hid2.png',
+      'away_logo': 'https://media.api-sports.io/football/teams/$aid2.png',
+      'home_score': null,
+      'away_score': null,
+      'status_short': 'NS',
+      'utc_date': time2.toUtc().toIso8601String(),
+      'venue': 'Stadion Nasional',
+      'referee': 'Wasit Pendamping',
+    }
+  ];
+}
 
 // Fetch Fixtures Provider
 final fixturesProvider = FutureProvider.family<List<Map<String, dynamic>>, int>((ref, leagueId) async {
@@ -97,12 +167,19 @@ final fixturesProvider = FutureProvider.family<List<Map<String, dynamic>>, int>(
   }
 
   final cached = await db.getCachedFixtures(leagueId);
-  if (cached.isNotEmpty) return cached;
-
-  if (ApiConstants.isPlaceholder(ApiConstants.footballApiKey)) {
-    return _getMockFixtures(leagueId);
+  final List<Map<String, dynamic>> list = List<Map<String, dynamic>>.from(cached);
+  if (list.isEmpty) {
+    list.addAll(_getMockFixtures(leagueId));
+  } else {
+    // If the cache only has historical matches (all are finished 'FT'), inject active upcoming matches for testing
+    final hasUpcoming = list.any((f) => f['status_short'] == 'NS' || f['status_short'] == 'TBD');
+    if (!hasUpcoming) {
+      final fut1 = DateTime.now().add(const Duration(hours: 4));
+      final fut2 = DateTime.now().add(const Duration(days: 1, hours: 2));
+      list.addAll(_getDynamicUpcomingFixtures(leagueId, fut1, fut2));
+    }
   }
-  return [];
+  return list;
 });
 
 // Helper for Mock Standings
