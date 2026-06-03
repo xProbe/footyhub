@@ -482,7 +482,7 @@ class _MatchPredictorViewState extends ConsumerState<MatchPredictorView> {
                                 child: Text(
                                   scoreProb.score,
                                   style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
-                                  textAlign: Center,
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                               Expanded(

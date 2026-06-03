@@ -643,7 +643,6 @@ class _CompetitionViewState extends ConsumerState<CompetitionView> with SingleTi
       },
     );
   }
-}
 
   Widget _playerDot(String name, Color color) {
     return Column(
