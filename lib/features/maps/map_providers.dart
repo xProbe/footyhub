@@ -144,7 +144,7 @@ class MapNotifier extends StateNotifier<MapState> {
   Future<void> fetchNearbyPlaces(double lat, double lng, {String keyword = "futsal"}) async {
     state = state.copyWith(isLoading: true);
     
-    if (ApiConstants.googleMapsKey == 'MASUKKAN_GOOGLE_MAPS_KEY_ANDA') {
+    if (ApiConstants.isPlaceholder(ApiConstants.googleMapsKey)) {
       await Future.delayed(const Duration(milliseconds: 800));
       
       final dummyPlaces = [

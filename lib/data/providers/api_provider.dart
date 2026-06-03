@@ -37,7 +37,7 @@ class ApiProvider {
   }
 
   static Future<String?> askGemini(String promptText) async {
-    if (ApiConstants.geminiKey == 'MASUKKAN_GEMINI_API_KEY_ANDA') {
+    if (ApiConstants.isPlaceholder(ApiConstants.geminiKey)) {
       await Future.delayed(const Duration(seconds: 1));
       return 'Fitur AI belum dikonfigurasi (API Key belum ada). Namun secara dummy, ini adalah balasan dari FootyHub Assistant untuk pertanyaan Anda:\n\n"$promptText"\n\nSilakan masukkan API Key Gemini Anda di api_constants.dart agar saya bisa menjawab sungguhan.';
     }

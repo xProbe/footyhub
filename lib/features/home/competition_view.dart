@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/widgets/glass_widgets.dart';
+import '../../core/utils/notification_helper.dart';
 import 'competition_providers.dart';
 
 class CompetitionView extends ConsumerStatefulWidget {
@@ -38,6 +40,43 @@ class _CompetitionViewState extends ConsumerState<CompetitionView> with SingleTi
         title: Text('LEAGUE HUB', style: GoogleFonts.orbitron(letterSpacing: 1.5, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF0A0A0C),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notification_important, color: Color(0xFF39FF14)),
+            tooltip: 'Tes Notifikasi',
+            onPressed: () async {
+              if (kIsWeb) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: const Color(0xFF141418),
+                    content: Text(
+                      '🔔 Notifikasi lokal hanya didukung di Android/iOS secara native. Di Web, pemicu ini mensimulasikan notifikasi!',
+                      style: GoogleFonts.inter(color: const Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                    ),
+                    action: SnackBarAction(
+                      label: 'TUTUP',
+                      textColor: Colors.white,
+                      onPressed: () {},
+                    ),
+                  ),
+                );
+              } else {
+                await NotificationHelper.showTestNotification();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF141418),
+                      content: Text(
+                        '🔔 Notifikasi tes terkirim! Periksa status bilah notifikasi Anda.',
+                        style: GoogleFonts.inter(color: const Color(0xFF39FF14), fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(110.0),
           child: Column(
@@ -171,6 +210,7 @@ class _CompetitionViewState extends ConsumerState<CompetitionView> with SingleTi
   // ==========================================
   Widget _buildFixturesTab(int leagueId) {
     final fixturesAsync = ref.watch(fixturesProvider(leagueId));
+    final reminders = ref.watch(fixtureRemindersProvider);
 
     return fixturesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -190,34 +230,74 @@ class _CompetitionViewState extends ConsumerState<CompetitionView> with SingleTi
             final wit = utcTime.add(const Duration(hours: 9));
 
             final isLive = f['status_short'] == '1H' || f['status_short'] == '2H' || f['status_short'] == 'HT' || f['status_short'] == 'LIVE';
+            final id = f['id']?.toString() ?? '';
+            final isReminderSet = reminders.contains(id);
 
             return GlassCard(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Head Row: Timezone selectors / info
+                  // Head Row: Timezone selectors / info & Reminder toggle
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        f['venue'] ?? 'Stadium',
-                        style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isLive ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
+                      Expanded(
                         child: Text(
-                          isLive ? 'LIVE · ${f['status_short']}' : f['status_short'],
-                          style: GoogleFonts.orbitron(
-                            fontSize: 10,
-                            color: isLive ? Colors.redAccent : Colors.white70,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          f['venue'] ?? 'Stadium',
+                          style: GoogleFonts.inter(color: Colors.white38, fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (f['status_short'] == 'NS' || f['status_short'] == 'TBD') ...[
+                            IconButton(
+                              constraints: const BoxConstraints(),
+                              padding: const EdgeInsets.only(right: 8),
+                              icon: Icon(
+                                isReminderSet ? Icons.notifications_active : Icons.notifications_none,
+                                size: 18,
+                                color: isReminderSet ? const Color(0xFF39FF14) : Colors.white38,
+                              ),
+                              onPressed: () async {
+                                await ref.read(fixtureRemindersProvider.notifier).toggleReminder(f);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: const Color(0xFF141418),
+                                      duration: const Duration(seconds: 2),
+                                      content: Text(
+                                        isReminderSet
+                                            ? '⏰ Pengingat dinonaktifkan untuk ${f['home_name']} vs ${f['away_name']}.'
+                                            : '⏰ Pengingat diaktifkan! Notifikasi dikirim 5 menit sebelum kickoff.',
+                                        style: GoogleFonts.inter(
+                                          color: isReminderSet ? Colors.white70 : const Color(0xFF39FF14),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isLive ? Colors.redAccent.withOpacity(0.1) : Colors.white.withOpacity(0.04),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              isLive ? 'LIVE · ${f['status_short']}' : f['status_short'],
+                              style: GoogleFonts.orbitron(
+                                fontSize: 10,
+                                color: isLive ? Colors.redAccent : Colors.white70,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

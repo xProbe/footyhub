@@ -25,8 +25,6 @@ class _MatchDetailViewState extends ConsumerState<MatchDetailView> {
   String _aiTacticalBrief = '';
   bool _isLoadingAi = false;
 
-  final double _baseTicketIdr = 1500000;
-
   @override
   void initState() {
     super.initState();
@@ -45,7 +43,7 @@ class _MatchDetailViewState extends ConsumerState<MatchDetailView> {
   }
 
   Future<void> _fetchAiBrief() async {
-    if (ApiConstants.geminiKey == 'MASUKKAN_GEMINI_API_KEY_ANDA') {
+    if (ApiConstants.isPlaceholder(ApiConstants.geminiKey)) {
       setState(() {
         _aiTacticalBrief = 'Asisten AI belum dikonfigurasi (Kunci API kosong). Silakan masukkan API Key di constants.';
       });
@@ -93,10 +91,7 @@ Berikan output ramah, analitis, sporty, dan ringkas dalam Bahasa Indonesia mengg
     }
   }
 
-  String _formatCurrency(double amount, String symbol) {
-    final format = NumberFormat.currency(locale: 'en_US', symbol: symbol, decimalDigits: 0);
-    return format.format(amount);
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -360,10 +355,28 @@ Berikan output ramah, analitis, sporty, dan ringkas dalam Bahasa Indonesia mengg
     }
     if (_usdRates == null) return const SizedBox.shrink();
 
-    final idr = _baseTicketIdr;
-    final usd = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'USD', usdRates: _usdRates!) ?? 0;
-    final eur = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'EUR', usdRates: _usdRates!) ?? 0;
-    final gbp = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'GBP', usdRates: _usdRates!) ?? 0;
+    // Determine realistic ticket prices based on league
+    double baseTicketIdr = 650000; // default standard
+    double vipTicketIdr = 1800000;
+    double economyTicketIdr = 300000;
+
+    final league = widget.item.leagueName.toLowerCase();
+    if (league.contains('champions league') || league.contains('uefa')) {
+      baseTicketIdr = 1200000;
+      vipTicketIdr = 3500000;
+      economyTicketIdr = 600000;
+    } else if (league.contains('premier league') || league.contains('la liga')) {
+      baseTicketIdr = 850000;
+      vipTicketIdr = 2500000;
+      economyTicketIdr = 400000;
+    }
+
+    String convert(double idr) {
+      final usd = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'USD', usdRates: _usdRates!) ?? 0;
+      final eur = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'EUR', usdRates: _usdRates!) ?? 0;
+      final gbp = ExchangeRateService.idrToTarget(idrAmount: idr, target: 'GBP', usdRates: _usdRates!) ?? 0;
+      return 'Rp ${NumberFormat.decimalPattern().format(idr)} / \$ ${usd.toStringAsFixed(0)} / € ${eur.toStringAsFixed(0)} / £ ${gbp.toStringAsFixed(0)}';
+    }
 
     return GlassCard(
       padding: const EdgeInsets.all(16),
@@ -375,30 +388,29 @@ Berikan output ramah, analitis, sporty, dan ringkas dalam Bahasa Indonesia mengg
               const Icon(Icons.confirmation_number_outlined, color: Colors.white38, size: 18),
               const SizedBox(width: 8),
               Text(
-                'Estimasi Harga Tiket',
+                'Estimasi Harga Tiket Pertandingan',
                 style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _currencyRow('IDR', _formatCurrency(idr, 'Rp ')),
-          const Divider(color: Colors.white10),
-          _currencyRow('USD', _formatCurrency(usd, '\$ ')),
-          const Divider(color: Colors.white10),
-          _currencyRow('EUR', _formatCurrency(eur, '€ ')),
-          const Divider(color: Colors.white10),
-          _currencyRow('GBP', _formatCurrency(gbp, '£ ')),
+          const SizedBox(height: 16),
+          _ticketCategoryRow('Kategori VIP', convert(vipTicketIdr), Theme.of(context).colorScheme.primary),
+          const Divider(color: Colors.white10, height: 16),
+          _ticketCategoryRow('Kategori Standard', convert(baseTicketIdr), Colors.cyanAccent),
+          const Divider(color: Colors.white10, height: 16),
+          _ticketCategoryRow('Kategori Ekonomi', convert(economyTicketIdr), Colors.white70),
         ],
       ),
     );
   }
 
-  Widget _currencyRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _ticketCategoryRow(String category, String formattedPrice, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.inter(color: Colors.white60, fontSize: 13)),
-        Text(value, style: GoogleFonts.orbitron(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+        Text(category, style: GoogleFonts.inter(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(formattedPrice, style: GoogleFonts.orbitron(fontSize: 11, color: Colors.white70)),
       ],
     );
   }
