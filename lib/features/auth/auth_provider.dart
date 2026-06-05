@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
@@ -160,15 +161,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return false;
       }
 
-      final sessionOk = await StorageUtil.hasValidSession();
-      if (!sessionOk) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'Sesi habis. Login dengan password terlebih dahulu.',
-        );
-        return false;
-      }
-
       bool canCheckBiometrics = await _localAuth.canCheckBiometrics;
       bool isDeviceSupported = await _localAuth.isDeviceSupported();
 
@@ -183,12 +175,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
       bool didAuthenticate = await _localAuth.authenticate(
         localizedReason: 'Autentikasi untuk masuk ke FootyHub',
         biometricOnly: true,
+        persistAcrossBackgrounding: true,
       );
 
       if (didAuthenticate) {
-        // Reload session state
-        final name = prefs.getString(StorageUtil.keyUserName) ?? 'User';
-        final nim = prefs.getString(StorageUtil.keyUserNim) ?? '—';
+        final name = dbUser?['name']?.toString() ?? 'User';
+        final nim = dbUser?['nim']?.toString() ?? '—';
+
+        // Generate a mock JWT token valid for 7 days
+        final header = base64Url.encode(utf8.encode(jsonEncode({"alg": "HS256", "typ": "JWT"})));
+        final exp = (DateTime.now().millisecondsSinceEpoch / 1000).round() + 7 * 24 * 60 * 60;
+        final payload = base64Url.encode(utf8.encode(jsonEncode({
+          "username": lastUser,
+          "exp": exp,
+        })));
+        final mockToken = '$header.$payload.mocksignature';
+
+        await StorageUtil.saveJwtSession(
+          token: mockToken,
+          username: lastUser,
+          name: name,
+          nim: nim,
+        );
+
         state = AuthState(
           isLoggedIn: true,
           username: lastUser,
@@ -201,7 +210,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, errorMessage: 'Autentikasi gagal.');
       return false;
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: 'Biometrik dibatalkan atau gagal.');
+      state = state.copyWith(isLoading: false, errorMessage: 'Biometrik dibatalkan atau gagal: $e');
       return false;
     }
   }

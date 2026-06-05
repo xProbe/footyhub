@@ -167,17 +167,66 @@ final themeDataProvider = Provider<ThemeData>((ref) {
   );
 });
 
-// Ambient Light sensor provider to dim UI
-class AmbientDimmedNotifier extends StateNotifier<bool> {
-  AmbientDimmedNotifier() : super(false);
+class SensorState {
+  final int lux;
+  final bool isRealSensor;
+  final bool isDimmed;
+  final bool isNear;
+  final bool isRealProximity;
 
-  void setDimmed(bool dimmed) {
-    if (state != dimmed) {
-      state = dimmed;
-    }
+  SensorState({
+    this.lux = 100,
+    this.isRealSensor = true,
+    this.isDimmed = false,
+    this.isNear = false,
+    this.isRealProximity = true,
+  });
+
+  SensorState copyWith({
+    int? lux,
+    bool? isRealSensor,
+    bool? isDimmed,
+    bool? isNear,
+    bool? isRealProximity,
+  }) {
+    return SensorState(
+      lux: lux ?? this.lux,
+      isRealSensor: isRealSensor ?? this.isRealSensor,
+      isDimmed: isDimmed ?? this.isDimmed,
+      isNear: isNear ?? this.isNear,
+      isRealProximity: isRealProximity ?? this.isRealProximity,
+    );
   }
 }
 
-final ambientDimmedProvider = StateNotifierProvider<AmbientDimmedNotifier, bool>((ref) {
-  return AmbientDimmedNotifier();
+class SensorStateNotifier extends StateNotifier<SensorState> {
+  SensorStateNotifier() : super(SensorState());
+
+  void setLux(int value) {
+    state = state.copyWith(
+      lux: value,
+      isDimmed: value < 10,
+    );
+  }
+
+  void setRealSensor(bool enabled) {
+    state = state.copyWith(isRealSensor: enabled);
+  }
+
+  void setNear(bool near) {
+    state = state.copyWith(isNear: near);
+  }
+
+  void setRealProximity(bool enabled) {
+    state = state.copyWith(isRealProximity: enabled);
+  }
+}
+
+final sensorStateProvider = StateNotifierProvider<SensorStateNotifier, SensorState>((ref) {
+  return SensorStateNotifier();
+});
+
+// Ambient Light sensor provider to dim UI (compatibility wrapper)
+final ambientDimmedProvider = Provider<bool>((ref) {
+  return ref.watch(sensorStateProvider).isDimmed;
 });

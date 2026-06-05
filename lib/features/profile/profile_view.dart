@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme/widgets/glass_widgets.dart';
+import '../../core/theme/theme_provider.dart';
 import '../auth/auth_provider.dart';
 import 'profile_providers.dart';
 
@@ -256,6 +257,271 @@ class _ProfileViewState extends ConsumerState<ProfileView> {
                           },
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Sensors Settings & Simulation
+                  _buildSectionHeader(Icons.sensors_rounded, 'PENGATURAN & SIMULASI SENSOR', colorScheme.primary),
+                  const SizedBox(height: 10),
+                  GlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final sensorState = ref.watch(sensorStateProvider);
+                        final sensorNotifier = ref.read(sensorStateProvider.notifier);
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Header Info
+                            Row(
+                              children: [
+                                Icon(Icons.info_outline_rounded, color: colorScheme.primary, size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Sensor berjalan otomatis secara REALTIME pada ponsel fisik. Mode simulasi hanya bantuan info untuk menguji fitur pada emulator/web.',
+                                    style: GoogleFonts.inter(fontSize: 10, color: Colors.white60, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(color: Colors.white10, height: 24),
+
+                            // Ambient Light Section
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.light_mode_rounded, color: Colors.white70, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Sensor Cahaya (Ambient Light)',
+                                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: sensorState.isRealSensor ? Colors.green.withOpacity(0.12) : Colors.amber.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: sensorState.isRealSensor ? Colors.green : Colors.amber, width: 0.5),
+                                      ),
+                                      child: Text(
+                                        sensorState.isRealSensor ? 'REALTIME' : 'SIMULASI',
+                                        style: GoogleFonts.orbitron(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
+                                          color: sensorState.isRealSensor ? Colors.green : Colors.amber,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Fungsi Asli: Mendeteksi kegelapan sekitar. Jika intensitas cahaya < 10 Lux, peta Lapangan otomatis meredup untuk melindungi mata dari kelelahan (Mode Malam/Eye-Care).',
+                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.white38, height: 1.4),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Mode Simulasi Manual',
+                                      style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
+                                    ),
+                                    Switch(
+                                      value: !sensorState.isRealSensor,
+                                      activeColor: colorScheme.primary,
+                                      onChanged: (val) {
+                                        sensorNotifier.setRealSensor(!val);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                if (!sensorState.isRealSensor) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Simulasi Cahaya: ${sensorState.lux} Lux',
+                                        style: GoogleFonts.orbitron(fontSize: 11, fontWeight: FontWeight.bold, color: colorScheme.primary),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        sensorState.isDimmed ? '(Mode Malam Aktif)' : '(Normal)',
+                                        style: TextStyle(fontSize: 11, color: sensorState.isDimmed ? colorScheme.primary : Colors.white38),
+                                      ),
+                                    ],
+                                  ),
+                                  Slider(
+                                    value: sensorState.lux.toDouble(),
+                                    min: 0.0,
+                                    max: 200.0,
+                                    activeColor: colorScheme.primary,
+                                    inactiveColor: Colors.white10,
+                                    onChanged: (val) {
+                                      sensorNotifier.setLux(val.round());
+                                    },
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Pembacaan Fisik: ${sensorState.lux} Lux ${sensorState.isDimmed ? "(Redup Aktif)" : ""}',
+                                    style: GoogleFonts.orbitron(fontSize: 11, color: Colors.white70),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const Divider(color: Colors.white10, height: 24),
+
+                            // Proximity Section
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.phonelink_erase_rounded, color: Colors.white70, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Sensor Kedekatan (Proximity)',
+                                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: sensorState.isRealProximity ? Colors.green.withOpacity(0.12) : Colors.amber.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: sensorState.isRealProximity ? Colors.green : Colors.amber, width: 0.5),
+                                      ),
+                                      child: Text(
+                                        sensorState.isRealProximity ? 'REALTIME' : 'SIMULASI',
+                                        style: GoogleFonts.orbitron(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
+                                          color: sensorState.isRealProximity ? Colors.green : Colors.amber,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Fungsi Asli: Mendeteksi saku celana/tas. Mengunci layar otomatis (Pocket Protection Mode) untuk mencegah penekanan tombol/sentuhan tidak sengaja.',
+                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.white38, height: 1.4),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Mode Simulasi Manual',
+                                      style: GoogleFonts.inter(fontSize: 12, color: Colors.white70),
+                                    ),
+                                    Switch(
+                                      value: !sensorState.isRealProximity,
+                                      activeColor: colorScheme.primary,
+                                      onChanged: (val) {
+                                        sensorNotifier.setRealProximity(!val);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                if (!sensorState.isRealProximity) ...[
+                                  const SizedBox(height: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      sensorNotifier.setNear(!sensorState.isNear);
+                                    },
+                                    icon: Icon(
+                                      sensorState.isNear ? Icons.phonelink_ring_rounded : Icons.phonelink_lock_rounded,
+                                      size: 16,
+                                      color: Colors.black,
+                                    ),
+                                    label: Text(
+                                      sensorState.isNear ? 'SIMULASIKAN JAUH (BUKA LAYAR)' : 'SIMULASIKAN DEKAT (KUNCI SAKU)',
+                                      style: GoogleFonts.orbitron(fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5, color: Colors.black),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: sensorState.isNear ? colorScheme.primary : Colors.white70,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Pembacaan Fisik: ${sensorState.isNear ? "DEKAT (TERKUNCI)" : "JAUH (NORMAL)"}',
+                                    style: GoogleFonts.orbitron(fontSize: 11, color: Colors.white70),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const Divider(color: Colors.white10, height: 24),
+
+                            // Accelerometer Section
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.edgesensor_high_rounded, color: Colors.white70, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Sensor Akselerometer (G-Force)',
+                                          style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: Colors.green, width: 0.5),
+                                      ),
+                                      child: Text(
+                                        'REALTIME',
+                                        style: GoogleFonts.orbitron(
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Fungsi Asli: Mendeteksi goyangan (shake) fisik pada perangkat Anda untuk memicu pemuatan ulang (refresh) otomatis atau efek getaran suara.',
+                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.white38, height: 1.4),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Status Fisik: AKTIF & SINKRON',
+                                  style: GoogleFonts.orbitron(fontSize: 11, color: colorScheme.primary, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 32),

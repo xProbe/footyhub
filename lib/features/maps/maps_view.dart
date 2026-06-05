@@ -109,6 +109,40 @@ class _MapsViewState extends ConsumerState<MapsView> {
               ),
             ),
 
+          // 2.5 Light Sensor Dimming Indicator Banner
+          if (isAmbientDimmed)
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + (widget.showBack ? 124 : 80),
+              left: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => _showSensorInfoDialog(context),
+                child: GlassCard(
+                  opacity: 0.2,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  border: Border.all(color: const Color(0xFF39FF14).withOpacity(0.3)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.nightlight_round, color: Color(0xFF39FF14), size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'SENSOR CAHAYA: MODE MALAM AKTIF (<10 LUX)',
+                        style: GoogleFonts.orbitron(
+                          color: const Color(0xFF39FF14),
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(Icons.info_outline_rounded, color: Color(0xFF39FF14), size: 12),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // 3. Search Bar Area
           Positioned(
             top: MediaQuery.paddingOf(context).top + (widget.showBack ? 60 : 16),
@@ -177,6 +211,22 @@ class _MapsViewState extends ConsumerState<MapsView> {
               ),
             ),
 
+          // 4.8 Sensor Info Floating Action Button
+          Positioned(
+            right: 16,
+            bottom: mapState.selectedPlace != null ? 365 : 185,
+            child: FloatingActionButton(
+              heroTag: 'sensor_info_btn',
+              backgroundColor: const Color(0xFF0A0A0C),
+              foregroundColor: colorScheme.primary,
+              shape: const CircleBorder(),
+              onPressed: () {
+                _showSensorInfoDialog(context);
+              },
+              child: const Icon(Icons.sensors_rounded),
+            ),
+          ),
+
           // 5. My Location Centering Floating Action Button
           Positioned(
             right: 16,
@@ -196,6 +246,192 @@ class _MapsViewState extends ConsumerState<MapsView> {
             _buildDraggableSheet(context, mapState.selectedPlace!),
         ],
       ),
+    );
+  }
+
+  void _showSensorInfoDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF0A0A0C),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, child) {
+            final sensorState = ref.watch(sensorStateProvider);
+            final colorScheme = Theme.of(context).colorScheme;
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Icon(Icons.sensors_rounded, color: colorScheme.primary, size: 24),
+                      const SizedBox(width: 12),
+                      Text(
+                        'DASHBOARD SENSOR HARDWARE',
+                        style: GoogleFonts.orbitron(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'FootyHub terintegrasi langsung dengan sensor fisik perangkat Anda untuk keamanan dan kenyamanan.',
+                    style: GoogleFonts.inter(color: Colors.white60, fontSize: 12),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 1. Light Sensor Row
+                  _buildSensorInfoItem(
+                    context: context,
+                    icon: Icons.light_mode_rounded,
+                    title: 'Sensor Cahaya (Ambient Light)',
+                    subtitle: 'Auto-dimming peta di kegelapan (<10 Lux)',
+                    value: '${sensorState.lux} Lux',
+                    valueColor: sensorState.isDimmed ? colorScheme.primary : Colors.white70,
+                    statusText: sensorState.isDimmed ? 'MODE REDUP AKTIF' : 'NORMAL',
+                    statusColor: sensorState.isDimmed ? colorScheme.primary : Colors.white38,
+                    description: 'Membaca tingkat cahaya sekitar. Jika ruangan gelap (lux < 10), kontras peta otomatis diturunkan untuk melindungi mata dari kelelahan (Eye Care).',
+                  ),
+                  const Divider(color: Colors.white10, height: 32),
+
+                  // 2. Proximity Sensor Row
+                  _buildSensorInfoItem(
+                    context: context,
+                    icon: Icons.phonelink_erase_rounded,
+                    title: 'Sensor Kedekatan (Proximity)',
+                    subtitle: 'Pocket Protection Mode (kunci saku)',
+                    value: sensorState.isNear ? 'TERTUTUP' : 'JAUH',
+                    valueColor: sensorState.isNear ? Colors.redAccent : Colors.white70,
+                    statusText: sensorState.isNear ? 'TERKUNCI' : 'AKTIF',
+                    statusColor: sensorState.isNear ? Colors.redAccent : Colors.white38,
+                    description: 'Mencegah ketukan tidak sengaja saat ponsel diletakkan di saku celana atau tas dengan mengunci layar sementara.',
+                  ),
+                  const Divider(color: Colors.white10, height: 32),
+
+                  // 3. Accelerometer Row
+                  _buildSensorInfoItem(
+                    context: context,
+                    icon: Icons.edgesensor_high_rounded,
+                    title: 'Sensor Akselerometer (G-Force)',
+                    subtitle: 'Deteksi goyangan (Shake Device)',
+                    value: 'AKTIF',
+                    valueColor: colorScheme.primary,
+                    statusText: 'SINKRON',
+                    statusColor: Colors.white38,
+                    description: 'Mendeteksi hentakan/goyangan perangkat. Goyangkan ponsel Anda untuk memuat ulang data atau memicu efek suara tendangan bola.',
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'TUTUP DASHBOARD',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSensorInfoItem({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String value,
+    required Color valueColor,
+    required String statusText,
+    required Color statusColor,
+    required String description,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.white60, size: 20),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                    ),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(fontSize: 11, color: Colors.white38),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  value,
+                  style: GoogleFonts.orbitron(fontSize: 12, fontWeight: FontWeight.bold, color: valueColor),
+                ),
+                Text(
+                  statusText,
+                  style: GoogleFonts.orbitron(fontSize: 9, fontWeight: FontWeight.bold, color: statusColor),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Padding(
+          padding: const EdgeInsets.only(left: 32),
+          child: Text(
+            description,
+            style: GoogleFonts.inter(fontSize: 11, color: Colors.white38, height: 1.4),
+          ),
+        ),
+      ],
     );
   }
 

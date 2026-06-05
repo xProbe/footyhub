@@ -74,6 +74,10 @@ class StorageUtil {
 
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove(keyIsLoggedIn);
+    await prefs.remove(keyJwtToken);
+    await prefs.remove(keyUsername);
+    await prefs.remove(keyUserName);
+    await prefs.remove(keyUserNim);
   }
 }

@@ -1,6 +1,6 @@
 # Flowchart Aplikasi FootyHub
 
-Dokumen ini berisi struktur visual diagram **Flowchart** dari alur sistem aplikasi FootyHub. Struktur ini dibuat identik dengan pola dari referensi (*flowcharttugasaakhir.drawio*) namun disesuaikan fiturnya untuk kasus FootyHub.
+Dokumen ini berisi struktur visual diagram **Flowchart** dari alur sistem aplikasi FootyHub saat ini. Struktur ini disesuaikan sepenuhnya dengan fitur mutakhir: navigasi 5-tab Riverpod, integrasi model prediksi Machine Learning lokal (.tflite), AI Tactical Brief, dan alur pembacaan sensor fisik realtime dengan mode simulasi.
 
 > **Cara Menggunakan ke dalam Draw.io:**
 > 1. Salin (Copy) kode yang ada di dalam blok kode `mermaid` di bawah ini (Mulai dari baris `graph TD` hingga akhir).
@@ -11,62 +11,85 @@ Dokumen ini berisi struktur visual diagram **Flowchart** dari alur sistem aplika
 
 ```mermaid
 graph TD
-    %% Mulai
+    %% Mulai & Autentikasi
     Mulai([Mulai Aplikasi]) --> CekSesi{Cek Sesi Lokal}
     
-    %% Sesi
     CekSesi -- Sesi Aktif --> Dashboard[Dasbor Utama]
     CekSesi -- Sesi Tidak Aktif --> LayarLogin([Layar Login])
     
-    %% Login Flow
     LayarLogin --> PilihMetode{Pilih Metode}
-    PilihMetode -- Email/Password --> InputKredensial[Input Kredensial]
-    PilihMetode -- Biometrik --> PindaiBiometrik[Pindai Sidik Jari / Wajah]
+    PilihMetode -- Email/Password --> InputKredensial[Input Kredensial & Validasi SQLite]
+    PindaiBiometrik[Pindai Sidik Jari / Wajah local_auth]
+    PilihMetode -- Biometrik --> PindaiBiometrik
     
-    InputKredensial --> Validasi[Validasi & Autentikasi API]
+    InputKredensial --> Validasi[Autentikasi Berhasil]
     PindaiBiometrik --> Validasi
-    Validasi --> SimpanSesi[Enkripsi & Simpan Sesi Lokal]
+    Validasi --> SimpanSesi[Simpan Token Sesi JWT & SharedPreferences]
     SimpanSesi --> Dashboard
     
-    %% Navigasi Utama
-    Dashboard --> NavBawah{Bilah Navigasi Bawah}
+    %% Dashboard Tab Spine (Vertically Stacked to prevent horizontal stretch)
+    Dashboard --> Tab0[Tab 0: Menu Beranda]
     
-    %% 1. Beranda
-    NavBawah -- Menu 1 --> MenuHome[Menu Beranda]
-    MenuHome --> APIFootballHome[Ambil Data API Sepakbola]
-    APIFootballHome --> SensorCahaya[Cek Sensor Ambient/Light]
-    SensorCahaya --> ViewHome[Tampilan Beranda Berita & Jadwal]
+    %% Tab 0: Beranda & Fitur
+    Tab0 --> JadwalBeranda[Jadwal & Berita Terkini]
+    Tab0 --> ChatbotService[Pundit AI - Gemini Chatbot]
+    Tab0 --> KonversiService[Konversi Mata Uang & Jam Dunia]
+    Tab0 --> MiniGameService[Bounce Ball Mini Game & High Scores]
+    Tab0 --> ShakeSensor[Sensor Akselerometer - Shake to Refresh]
     
-    %% 2. Ensiklopedia
-    NavBawah -- Menu 2 --> MenuEnsiklo[Menu Ensiklopedia]
-    MenuEnsiklo --> APIFootballEnsiklo[Ambil Data Klub/Liga]
-    APIFootballEnsiklo --> DaftarKlub[Daftar Katalog Tim]
-    DaftarKlub --> DetailKlub[Detail Informasi Tim]
+    %% Link to Tab 1
+    ShakeSensor --> Tab1[Tab 1: Menu Kompetisi / League Hub]
     
-    %% 3. Konversi / Tools
-    NavBawah -- Menu 3 --> MenuTools[Menu Konversi]
-    MenuTools --> SubKonversi[Kalkulator Konversi API FloatRates]
-    MenuTools --> SubJam[Jam Dunia]
-    MenuTools --> SensorAkselerometer[Deteksi Sensor Accelerometer untuk Refresh]
+    %% Tab 1: Kompetisi & Fitur
+    Tab1 --> KlasemenLiga[Klasemen Real-time 6 Liga Elit]
+    Tab1 --> JadwalLiga[Jadwal Liga - Konversi Zona Waktu]
+    JadwalLiga --> SetReminder[Setel Pengingat Jadwal - Bell Icon]
+    SetReminder --> ScheduleNotif[Jadwal Notifikasi - local_notifications]
+    Tab1 --> MatchCenter[Match Center & Visual Line-up]
+    MatchCenter --> GeminiAI[Gemini AI Tactical Brief]
     
-    %% 4. Pundit AI
-    NavBawah -- Menu 4 --> MenuPundit[Menu Pundit AI]
-    MenuPundit --> APICohere[Kirim Prompt ke API Cohere]
-    APICohere --> ChatResponse[Tampilan Respon Chat Cerdas]
+    %% Link to Tab 2
+    GeminiAI --> Tab2[Tab 2: Menu Lapangan / Maps]
     
-    %% 5. Maps
-    NavBawah -- Menu 5 --> MenuMaps[Menu Peta / Maps]
-    MenuMaps --> GPS[Minta Akses Lokasi GPS]
-    GPS --> RenderMap[Peta Berbasis Lokasi Lapangan Futsal/Stadion]
-    RenderMap --> SearchBox[Pencarian Search Box Lokasi Spesifik]
+    %% Tab 2: Maps & Fitur
+    Tab2 --> GPS[Minta Akses Lokasi GPS]
+    GPS --> RenderMap[Render Custom Dark Map & Pitches Markers]
+    RenderMap --> SearchBox[Cari Lapangan Spesifik]
+    RenderMap --> SensorCahaya[Sensor Cahaya - Auto-dim Map <10 Lux]
+    RenderMap --> SensorDashboard[Dashboard Info Sensor Hardware]
+    RenderMap --> DetailSewa[Detail Lapangan & Konversi Harga Sewa]
+    DetailSewa --> SewaAction[Sewa Lapangan & Suara Kick - just_audio]
     
-    %% 6. Profil
-    NavBawah -- Menu 6 --> MenuProfil[Menu Profil]
-    MenuProfil --> TampilProfil[Identitas: Nama Anda - NIM Anda]
-    TampilProfil --> Evaluasi[Formulir Evaluasi TPM]
-    TampilProfil --> AksiKeluar[Aksi Logout]
+    %% Link to Tab 3
+    SewaAction --> Tab3[Tab 3: Menu Prediktor ML]
+    
+    %% Tab 3: Prediktor ML & Fitur
+    Tab3 --> LoadModel[Muat Local Trained Model match_predictor.tflite]
+    LoadModel --> InputParams[Form input parameter: possession, shots, dll]
+    InputParams --> MLInference[Inference Machine Learning - flutter_litert]
+    MLInference --> ProbabilitasHasil[Prediksi Win/Draw/Loss & Grafik Hasil]
+    ProbabilitasHasil --> PoissonDistribution[Probabilitas Skor Tepat - Poisson Distribution]
+    
+    %% Link to Tab 4
+    PoissonDistribution --> Tab4[Tab 4: Menu Akun / Profil]
+    
+    %% Tab 4: Akun, Sensor & Logout
+    Tab4 --> TampilProfil[Identitas Mahasiswa: Nama - NIM]
+    Tab4 --> SQLiteFeedback[Simpan Saran Kesan TPM ke SQLite]
+    Tab4 --> Keamanan[Kelola Pengaturan Login Biometrik]
+    Tab4 --> SensorSetting[Pengaturan & Simulasi Sensor Dashboard]
+    SensorSetting --> SensorSim{Gunakan Mode Simulasi?}
+    SensorSim -- Ya --> ManualSlider[Atur Lux Slider & Switch Proximity]
+    SensorSim -- Tidak --> RealSensor[Gunakan Sensor Fisik Asli Perangkat]
+    
+    %% Proximity Flow
+    RealSensor --> ProximityCheck[Deteksi Proximity Sensor Fisik]
+    ManualSlider --> ProximityCheck
+    ProximityCheck -- Dekat/Tertutup --> PocketMode[Pocket Protection Mode - Layar Terkunci]
+    ProximityCheck -- Jauh/Terbuka --> Tab4
     
     %% Logout Flow
+    Tab4 --> AksiKeluar[Aksi Logout]
     AksiKeluar --> HapusSesi[Hapus Data Sesi Lokal]
     HapusSesi --> LayarLogin
 
@@ -74,8 +97,12 @@ graph TD
     classDef startEnd fill:#d4edda,stroke:#28a745,stroke-width:2px;
     classDef decision fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
     classDef process fill:#e2e3e5,stroke:#6c757d,stroke-width:1px;
+    classDef sensor fill:#cce5ff,stroke:#004085,stroke-width:1.5px;
+    classDef ml fill:#f8d7da,stroke:#721c24,stroke-width:1.5px;
 
     class Mulai,LayarLogin startEnd;
-    class CekSesi,PilihMetode,NavBawah decision;
-    class Validasi,SimpanSesi,Dashboard,AksiKeluar,HapusSesi process;
+    class CekSesi,PilihMetode,SensorSim decision;
+    class Validasi,SimpanSesi,Dashboard,AksiKeluar,HapusSesi,PocketMode process;
+    class ShakeSensor,SensorCahaya,ProximityCheck,SensorSetting sensor;
+    class LoadModel,MLInference,PoissonDistribution ml;
 ```

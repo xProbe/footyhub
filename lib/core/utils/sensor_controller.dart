@@ -1,14 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:light/light.dart';
+import 'package:proximity_sensor/proximity_sensor.dart';
 import '../theme/theme_provider.dart';
 
 class SensorManager {
   final Ref _ref;
   StreamSubscription? _accelerometerSub;
   StreamSubscription? _lightSub;
+  StreamSubscription? _proximitySub;
   
   DateTime _lastShakeTime = DateTime.now();
   final _shakeController = StreamController<void>.broadcast();
@@ -17,10 +20,12 @@ class SensorManager {
   SensorManager(this._ref) {
     _initAccelerometer();
     _initLightSensor();
+    _initProximitySensor();
   }
 
   void _initAccelerometer() {
     if (kIsWeb) return;
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) return;
     try {
       _accelerometerSub = accelerometerEventStream().listen(
         (AccelerometerEvent event) {
@@ -46,12 +51,31 @@ class SensorManager {
 
   void _initLightSensor() {
     if (kIsWeb) return;
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) return;
     try {
       _lightSub = Light().lightSensorStream.listen(
         (int lux) {
-          // If lux < 10, dim map contrast
-          final shouldDim = lux < 10;
-          _ref.read(ambientDimmedProvider.notifier).setDimmed(shouldDim);
+          final s = _ref.read(sensorStateProvider);
+          if (s.isRealSensor) {
+            _ref.read(sensorStateProvider.notifier).setLux(lux);
+          }
+        },
+        onError: (_) {},
+      );
+    } catch (_) {}
+  }
+
+  void _initProximitySensor() {
+    if (kIsWeb) return;
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) return;
+    try {
+      _proximitySub = ProximitySensor.events.listen(
+        (int event) {
+          final s = _ref.read(sensorStateProvider);
+          if (s.isRealProximity) {
+            // Usually: 1 = near, 0 = far
+            _ref.read(sensorStateProvider.notifier).setNear(event > 0);
+          }
         },
         onError: (_) {},
       );
@@ -61,6 +85,7 @@ class SensorManager {
   void dispose() {
     _accelerometerSub?.cancel();
     _lightSub?.cancel();
+    _proximitySub?.cancel();
     _shakeController.close();
   }
 }
@@ -69,4 +94,9 @@ final sensorManagerProvider = Provider<SensorManager>((ref) {
   final manager = SensorManager(ref);
   ref.onDispose(() => manager.dispose());
   return manager;
+});
+
+final shakeEventProvider = StreamProvider<void>((ref) {
+  final manager = ref.watch(sensorManagerProvider);
+  return manager.onShake;
 });

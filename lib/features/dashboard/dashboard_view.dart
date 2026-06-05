@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/theme/widgets/glass_widgets.dart';
 import '../home/home_view.dart';
 import '../maps/maps_view.dart';
@@ -33,6 +35,59 @@ class DashboardView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tabIndex = ref.watch(dashboardTabProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final isNear = ref.watch(sensorStateProvider.select((s) => s.isNear));
+
+    // Listen to Ambient Light Sensor dimming state changes
+    ref.listen<bool>(sensorStateProvider.select((s) => s.isDimmed), (prev, next) {
+      if (prev != null && prev != next) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF39FF14),
+            duration: const Duration(seconds: 2),
+            content: Row(
+              children: [
+                Icon(next ? Icons.nightlight_round : Icons.light_mode_rounded, color: Colors.black),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    next
+                        ? 'Sensor Cahaya: Lingkungan gelap terdeteksi! Mengaktifkan Mode Malam Peta...'
+                        : 'Sensor Cahaya: Cahaya sekitar normal! Mengembalikan Kontras Peta...',
+                    style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
+    // Listen to Proximity Sensor near state changes
+    ref.listen<bool>(sensorStateProvider.select((s) => s.isNear), (prev, next) {
+      if (prev != null && prev != next) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: next ? Colors.redAccent : const Color(0xFF39FF14),
+            duration: const Duration(seconds: 2),
+            content: Row(
+              children: [
+                Icon(next ? Icons.phonelink_lock_rounded : Icons.lock_open_rounded, color: next ? Colors.white : Colors.black),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    next
+                        ? 'Sensor Proximity: Objek dekat terdeteksi! Layar dikunci (Pocket Protection).'
+                        : 'Sensor Proximity: Objek menjauh. Layar dibuka kembali.',
+                    style: GoogleFonts.inter(color: next ? Colors.white : Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       body: Stack(
@@ -42,6 +97,87 @@ class DashboardView extends ConsumerWidget {
             index: tabIndex,
             children: _views,
           ),
+
+          // Proximity pocket protection overlay
+          if (isNear)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.96),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Glow Container for Locked Icon
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.3), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.redAccent.withOpacity(0.2),
+                            blurRadius: 24,
+                            spreadRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.phonelink_lock_rounded,
+                        size: 64,
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'POCKET PROTECTION ACTIVE',
+                      style: GoogleFonts.orbitron(
+                        color: Colors.redAccent,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'Sensor kedekatan mendeteksi objek. Layar dikunci otomatis untuk mencegah penekanan tidak sengaja di saku.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    // Unlock button
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        ref.read(sensorStateProvider.notifier).setNear(false);
+                      },
+                      icon: const Icon(Icons.lock_open_rounded, size: 16),
+                      label: Text(
+                        'BUKA KUNCI MANUAL',
+                        style: GoogleFonts.orbitron(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white70,
+                        side: const BorderSide(color: Colors.white30),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: GlassBottomNavBar(

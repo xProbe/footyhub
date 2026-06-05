@@ -21,6 +21,30 @@ class HomeView extends ConsumerWidget {
     // Trigger loading sensors
     ref.watch(sensorManagerProvider);
 
+    // Listen to shake event from Accelerometer
+    ref.listen<AsyncValue<void>>(shakeEventProvider, (prev, next) {
+      if (next.hasValue) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF39FF14),
+            duration: const Duration(seconds: 2),
+            content: Row(
+              children: [
+                const Icon(Icons.edgesensor_high_rounded, color: Colors.black),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Sensor Akselerometer: Goyangan Terdeteksi! Memuat Ulang Berita Sepakbola...',
+                    style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: RefreshIndicator(
